@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Twitter Search Feed feature.
+ */
+
+include_once('twitter_search_feed.features.inc');

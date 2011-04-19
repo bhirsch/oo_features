@@ -5,3 +5,154 @@
  */
 
 include_once('video_nominee.features.inc');
+
+/**
+ * Implements hook_node_validate().
+ */
+/*
+function video_nominee_node_validate($node, $form, &$form_state) {
+  if ($node->type == 'tweet') {
+    dsm($node, 'validate');  
+  }
+}
+// */
+
+/**
+ * Implements hook_node_presave().
+ */
+function video_nominee_node_presave($node) {
+  if ($node->type == 'tweet') {
+    // If tweet is a video nomination, 
+    // create a video_nominee node.
+    foreach ($node->field_tweet_original as $field_tweet_original) {
+      // Determine whether tweet is a video nomination.
+      // 
+      // Nominations look like this: 
+      // 
+      // @onlineoscars nomination: #video_name http://something.com/video/url. 
+      // categories #one #two #etc.
+      $tweet = strtolower($field_tweet_original[0]['value']);
+      $is_nomination = (substr($tweet, 0, 25) == '@onlineoscars nomination:') ? TRUE : FALSE;
+      if ($is_nomination) {
+//dsm($node);
+        // Validate nomination by making sure it has the minimum required parts.
+        $parts = explode(' ', $tweet);
+        // Validate name. Verify $video_name is not taken.
+        $video_name = $parts[2];
+        $is_valid = _video_nominee_validate_name($video_name);
+        // Validate video url. Verify $url is valid.
+        $url = $parts[3];
+        $url = _video_nominee_validate_url($url);
+        $is_valid = ($url) ? $is_valid : FALSE; 
+        if ($is_valid) { 
+          // Save video_nominee node.
+          $video_node = new stdClass();
+          $video_node->title = $video_name;
+          $video_node->type = 'video_nominee';
+          $video_node->field_online_video_url['und'][0]['value'] = $url;
+          $video_node->field_online_video_url['und'][0]['format'] = 'plain_text'; // @todo replace this with video_filter widget
+          // TODO taxonomy
+          // Twitter author
+          // Category hashtags
+          // Video name hashtag
+          node_object_prepare($video_node);
+          node_save($video_node); 
+        } else {
+          // Build a queue of invalid nominations to process/handle.
+          // @todo.
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_presave().
+ */
+/*
+function video_nominee_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
+   dsm('calling hook_field_presave');
+   dsm($entity_type, 'entity_type');
+   dsm($entity, 'entity');
+   dsm($field, 'field');
+   dsm($instance, 'instance');
+   dsm($items, 'items'); 
+ }
+// */
+
+/**
+ * Validate url.
+ * 
+ * @param $url
+ *  string, url
+ * 
+ * @return
+ *  Valid url (string), or FALSE. 
+ */
+function _video_nominee_validate_url($url) {
+  if (substr($url, -1 == '.')) {
+    $url = substr($url, 0, -1);  
+  }
+  // Test url. Get final destination in case url sent via Twitter
+  // is a shortened URL. 
+  $destination = destination_url($url);
+  // HTTP code should be 2xx.
+  // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+  $http_code = $destination['http_code'];
+  if ($http_code >= 200 && $http_code < 300) {
+    $url = $destination['url'];
+  } else {
+    // Invalid url.
+    $url = FALSE; 
+  }
+
+  return $url;
+}
+
+/**
+ * Validate video name. 
+ * - name must be a twitter hashtag
+ * - name must be unique 
+ *
+ * @param $video_name
+ *  Proposed name for video nominee.
+ *
+ * @return
+ *  boolean
+ */
+function _video_nominee_validate_name($video_name) {
+  $is_valid = TRUE;
+  // Check for # symbol. (required)
+  if (substr($video_name, 0, 1) != '#') {
+    $is_valid = FALSE;  
+  }
+  // Check for dashes and spaces. (invalid)
+  if (strpos($video_name, '-') || strpos($video_name, ' ')) {
+    $is_valid = FALSE;
+  }
+  // Make sure name is unique.
+  if ($is_valid) {
+    /*
+    $result = db_select('node', 'n')
+        ->fields('n', array('title'))
+        ->condition(db_and()
+            ->condition('type', 'video_nominee', '=')
+            ->condition('title', $video_name, '=')
+        )
+        ->execute()
+        ->fetchAssoc();
+    // */
+    $node = db_query("SELECT title FROM {node} "
+              ."WHERE title = :title "
+              ."AND type = :type ",
+              array(':title' => $video_name, ':type' => 'video_nominee'))->fetch();
+    if ($node->title) {
+      // Name already exists. @todo notify sender of error.
+      $is_valid = FALSE;
+    }
+    // */
+    // TODO test submitting second video with same name.
+  }
+
+  return $is_valid; 
+}

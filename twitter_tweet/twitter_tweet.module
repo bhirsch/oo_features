@@ -183,20 +183,3 @@ function twitter_tweet_terms($tags, $vocabs) {
 
   return $value;
 }
-
-/**
- * Replace Twitter user references and hashtags with links.
- * Default theming links to Drupal's default taxonomy term
- * listing page. Override theme function to replace these
- * links with something else.
- * 
- * @param $original_tweet
- *  string
- * 
- * @return $processed_tweet
- *  HTML
- */
-/*
-function _twitter_tweet_process_tweet($node) {
-}
-// */

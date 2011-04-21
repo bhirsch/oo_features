@@ -169,8 +169,6 @@ function _video_nominee_validate_name($video_name) {
       // Name already exists. @todo notify sender of error.
       $is_valid = FALSE;
     }
-    // */
-    // TODO test submitting second video with same name.
   }
 
   return $is_valid; 

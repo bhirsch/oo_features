@@ -50,7 +50,6 @@ function twitter_tweet_node_presave($node) {
     // Add terms to node.
     $node->field_twitter_hashtags['und'] = $hashtags;
 
-
     // Prepare referenced twitter user terms.
     // Pull terms out of tweet in a comma separated list.
     $referenced_users = twitter_tweet_get_referenced_users($original_tweet);
@@ -60,10 +59,6 @@ function twitter_tweet_node_presave($node) {
     }
     // Add terms to node.
     $node->field_twitter_users['und'] = $referenced_users;
-
-    // Process tweet.
-    //$processed_tweet = _twitter_tweet_process_tweet($original_tweet, $hashtags, $referenced_users);
-    //$node->field_tweet_original['und'][0]['value'] = $processed_tweet;
   }
 }
 

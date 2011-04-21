@@ -32,9 +32,6 @@ function twitter_tweet_node_validate($node, $form, &$form_state) {
  *
  * Store references to twitter users and hashtags 
  * as taxonomy terms.
- *
- * Prepare processed tweet, with author, users and hashtags re-written
- * as HTML links to taxonomy pages.
  */
 function twitter_tweet_node_presave($node) {
   if ($node->type == 'tweet') {

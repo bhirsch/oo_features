@@ -8,17 +8,36 @@ include_once('video_nominee.features.inc');
 
 /**
  * Implements hook_node_validate().
+ *
+ * Note: hook_node_validate() is not called when Tweets are imported 
+ * from Twitter via Feeds module.
+ * Feeds saves tweet nodes by calling node_save(). There is no 
+ * opportunity to validate these nodes before node_saved() gets called.
+ * node_save() invokes hook_node_presave(), do any "validation" stuff there.
+ * Unfortunately, this limits our ability to prevent importing nodes that would 
+ * normally not make it through validation. 
+ * @todo This might be able to be handled with a custom Feeds processor.
+ * @todo The other option is to have some sort of queue for (manually?) processing bad 
+ *  nodes after they've been imported.
  */
 /*
 function video_nominee_node_validate($node, $form, &$form_state) {
-  if ($node->type == 'tweet') {
-    dsm($node, 'validate');  
-  }
 }
 // */
 
 /**
  * Implements hook_node_presave().
+ *
+ * Validate nomination tweet. Valid nominations look like this: 
+ *   @onlineoscars nomination: #video_name http://something.com/video/url. 
+ *   categories #one #two #etc.
+ * 
+ * Create corresponding video_nominee node.
+ * 
+ * Prepare hashtag term types (hastag taxonomy terms should get
+ * assigned "types", either "video name" or video "category").
+ * Prepare twitter user terms.
+ * Prepare processed tweet.
  */
 function video_nominee_node_presave($node) {
   if ($node->type == 'tweet') {
@@ -33,17 +52,6 @@ function video_nominee_node_presave($node) {
       $is_nomination = (substr($tweet, 0, 25) == '@onlineoscars nomination:') ? TRUE : FALSE;
     }
     if ($is_nomination) {
-      // CONTINUE HERE
-      // Validate nomination tweet.
-        // TODO move the code below into one nomination validation function.
-      // Prepare hashtags terms, and hashtag term types.
-        // TODO create function.
-      // Prepare twitter user terms.
-        // TODO create function.
-      // Prepare processed tweet.
-        // TODO create function.
-
-
       // Validate nomination by making sure it has the minimum required parts.
       $parts = explode(' ', $tweet);
       // Validate name. Verify $video_name is not taken.
@@ -54,13 +62,16 @@ function video_nominee_node_presave($node) {
       $url = _video_nominee_validate_url($url);
       $is_valid = ($url) ? $is_valid : FALSE; 
       if ($is_valid) { 
-        // Save video_nominee node.
+        // Prepare hashtag term types and create video_nominee node.
+        // First prepare hashtags term types.
+          // TODO create function.
+        // Now save video_nominee node.
         $video_node = new stdClass();
         $video_node->title = $video_name;
         $video_node->type = 'video_nominee';
         $video_node->field_online_video_url['und'][0]['value'] = $url;
         $video_node->field_online_video_url['und'][0]['format'] = 'plain_text'; // @todo replace this with video_filter widget
-        // TODO taxonomy
+        // TODO add taxonomy to video_nominee node.
         // Twitter author
         // Category hashtags
         // Video name hashtag

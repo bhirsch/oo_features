@@ -9,9 +9,17 @@ include_once('twitter_tweet.features.inc');
 /**
  * Implements hook_node_validate().
  *
- * Note: Tweets are imported from Twitter via Feeds module.
+ * Note: hook_node_validate() is not called when Tweets are imported 
+ * from Twitter via Feeds module.
  * Feeds saves tweet nodes by calling node_save(). There is no 
  * opportunity to validate these nodes before node_saved() gets called.
+ * node_save() invokes hook_node_presave(), do any "validation" stuff there.
+ * Unfortunately, this limits our ability to prevent importing nodes that would 
+ * normally not make it through validation. 
+ * @todo This might be able to be handled with a custom Feeds processor.
+ * @todo The other option is to have some sort of queue for (manually?) processing bad 
+ *  nodes after they've been imported.
+ * 
  */
 /*
 function twitter_tweet_node_validate($node, $form, &$form_state) {
@@ -21,26 +29,157 @@ function twitter_tweet_node_validate($node, $form, &$form_state) {
 /**
  * Implements hook_node_presave().
  *
- * Note: 
+ * Store references to twitter users and hashtags 
+ * as taxonomy terms.
+ *
+ * Prepare processed tweet, with author, users and hashtags re-written
+ * as HTML links to taxonomy pages.
  */
 function twitter_tweet_node_presave($node) {
   if ($node->type == 'tweet') {
 //dsm($node);  
-    // Store references to twitter users and hashtags 
-    // as taxonomy terms.
+    $original_tweet = $node->field_tweet_original['und'][0]['value'];
+
+    // Prepare hashtag terms.
+      // Pull terms out of tweet in a comma separated list.
+      $hashtags = twitter_tweet_get_hashtags($original_tweet);
+      // Now perpare terms as taxonomy terms, just like taxonomy_autocomplete_validate.
+      if (!empty($hashtags)) {
+        $hashtags = twitter_tweet_terms($hashtags, array('twitter_hashtags'));
+      }
+      // Add terms to node.
+      $node->field_twitter_hashtags['und'] = $hashtags;
+
+
+    // Prepare referenced twitter user terms.
+    // TODO 
+    $referenced_users = twitter_tweet_get_referenced_users($original_tweet);
+    // Prepare processed tweet, store it as a render array.
+      // TODO Create function to break down and rebuild all the parts.
+      // @todo Create a renderable array field.
   }
 }
 
 /**
- * Implements hook_field_presave().
+ * @param $original_tweet
+ *  string, tweet from twitter.
+ * 
+ * @return
+ *  comma separated list of twitter hashtags
  */
-/*
-function twitter_tweet_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
-   dsm('calling hook_field_presave');
-   dsm($entity_type, 'entity_type');
-   dsm($entity, 'entity');
-   dsm($field, 'field');
-   dsm($instance, 'instance');
-   dsm($items, 'items'); 
- }
-// */
+function twitter_tweet_get_hashtags($original_tweet) {
+  $hashtags = '';
+  $words = explode(' ', $original_tweet);
+  foreach($words as $word) {
+    if (substr($word, 0, 1) == '#') {
+      $word = twitter_tweet_filter_punctuation($word);
+      $hashtags .= $word . ', ';
+    } 
+  }
+  $hashtags = substr($hashtags, 0, -2); // remove last comma and space.
+  //dsm($hashtags,'$hashtags');
+
+  return $hashtags;
+}
+
+/**
+ * @param $original_tweet
+ *  string, tweet from twitter.
+ * 
+ * @return
+ *  comma separated list of referenced twitter users.
+ */
+function twitter_tweet_get_referenced_users($original_tweet) {
+  $referenced_users = ''; 
+  $words = explode(' ', $original_tweet);
+  foreach($words as $word) {
+    if (substr($word, 0, 1) == '@') {
+      $word = twitter_tweet_filter_punctuation($word);
+      $referenced_users .= $word . ', ';
+    } 
+  }
+  $referenced_users = substr($referenced_users, 0, -2); // remove last comma and space.
+  //  dsm($referenced_users, '$referenced_users');
+
+  return $referenced_users;
+}
+
+/**
+ * @param $word
+ *  string
+ *
+ * @return $word
+ *  string with punctuation that breaks hashtags and user references filtered out.
+ */
+function twitter_tweet_filter_punctuation($word) {
+  // Punctuation marks, except underscore, end hashtag wherever punctuation occurs.
+  // Filter out stuff that breaks Twitter hashtags, so the taxonomy
+  // terms match real Twitter hashtags.
+  // e.g. on Twitter #this-breaks creates a hashtag called #this.
+  $chars = array(
+    '@','#', // Note: if ($position = strpos($word, $char)) evaluates false below,
+             // so this doesn't break hashtags and user refrences beginning with 
+             // @ or #.
+    '-',"'",'.',':',';',
+    '~','`','!','$','%','^',
+    '&','*','(',')','+','=','<','>',
+    '/','?',',','[','{',']','}','|','\\',
+  );
+  foreach($chars as $char) {
+    if ($position = strpos($word, $char)) {
+      $word = substr($word, 0, $position);
+    }
+  }
+
+  return $word; 
+}
+
+/**
+ * @param $tags
+ *  String, comma separated list of terms (e.g. hashtags or user names).
+ * 
+ * @param $vocabs
+ *  array, vocabulary machine name(s)
+ *
+ * @return $value
+ *  Array of taxonomy term arrays.
+ *
+ * @see taxonomy_autocomplete_validate().
+ * @see taxonomy_field_presave().
+ */
+function twitter_tweet_terms($tags, $vocabs) {
+  $value = array();
+
+  // Collect candidate vocabularies.
+  $vocabularies = array();
+  foreach ($vocabs as $vocab) {
+    if ($vocabulary = taxonomy_vocabulary_machine_name_load($vocab)) {
+      $vocabularies[$vocabulary->vid] = $vocabulary;
+    }
+  }
+
+  // Translate term names into actual terms.
+  $typed_terms = drupal_explode_tags($tags);
+  foreach ($typed_terms as $typed_term) {
+    // See if the term exists in the chosen vocabulary and return the tid;
+    // otherwise, create a new 'autocreate' term for insert/update.
+    if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($typed_term), 'vid' => array_keys($vocabularies)))) {
+      $term = array_pop($possibilities);
+    }
+    else {
+      $vocabulary = reset($vocabularies);
+      $term = array(
+        //'tid' => 'autocreate',
+        'vid' => $vocabulary->vid,
+        'name' => $typed_term,
+        'vocabulary_machine_name' => $vocabulary->machine_name,
+      );
+      $term = (object) $term;
+      taxonomy_term_save($term);
+      $term = (array) $term;
+    }
+    $value[] = (array)$term;
+  }
+
+  return $value;
+}

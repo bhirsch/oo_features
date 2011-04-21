@@ -387,8 +387,8 @@ function video_nominee_field_default_fields() {
       'module' => 'list',
       'settings' => array(
         'allowed_values' => array(
-          'category' => 'video category',
-          'video name' => 'video name',
+          'video category' => 'Video Category',
+          'video name' => 'Video Name',
         ),
         'allowed_values_function' => '',
       ),
@@ -412,7 +412,7 @@ function video_nominee_field_default_fields() {
       'entity_type' => 'taxonomy_term',
       'field_name' => 'field_twitter_hashtag_type',
       'label' => 'Hashtag type',
-      'required' => 1,
+      'required' => 0,
       'settings' => array(
         'user_register_form' => FALSE,
       ),

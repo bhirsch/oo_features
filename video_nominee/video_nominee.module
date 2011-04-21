@@ -28,61 +28,70 @@ function video_nominee_node_validate($node, $form, &$form_state) {
 /**
  * Implements hook_node_presave().
  *
+ * Prepare hashtag term types (hastag taxonomy terms should get
+ * assigned "types", either "video name" or "video category").
+ * 
  * Validate nomination tweet. Valid nominations look like this: 
  *   @onlineoscars nomination: #video_name http://something.com/video/url. 
- *   categories #one #two #etc.
+ *   Categories: #one #two #etc.
  * 
  * Create corresponding video_nominee node.
- * 
- * Prepare hashtag term types (hastag taxonomy terms should get
- * assigned "types", either "video name" or video "category").
- * Prepare twitter user terms.
- * Prepare processed tweet.
  */
 function video_nominee_node_presave($node) {
   if ($node->type == 'tweet') {
-    // If tweet is a video nomination, 
-    // create a video_nominee node.
+
+    // Determine whether tweet is a video nomination.
     foreach ($node->field_tweet_original as $field_tweet_original) {
-      // Determine whether tweet is a video nomination.
       // Nominations look like this: 
       // @onlineoscars nomination: #video_name http://something.com/video/url. 
       // categories #one #two #etc.
       $tweet = strtolower($field_tweet_original[0]['value']);
       $is_nomination = (substr($tweet, 0, 25) == '@onlineoscars nomination:') ? TRUE : FALSE;
     }
+
+    // @todo Report validation errors to user via Twitter when validation fails.
+    //
+    // Validate nomination by making sure it has the minimum required parts.
     if ($is_nomination) {
-      // Validate nomination by making sure it has the minimum required parts.
       $parts = explode(' ', $tweet);
       // Validate name. Verify $video_name is not taken.
       $video_name = $parts[2];
       $is_valid = _video_nominee_validate_name($video_name);
-      // Validate video url. Verify $url is valid.
+      // Validate video url. Verify $url is a valid URL.
       $url = $parts[3];
       $url = _video_nominee_validate_url($url);
       $is_valid = ($url) ? $is_valid : FALSE; 
-      if ($is_valid) { 
-        // Prepare hashtag term types and create video_nominee node.
-        // First prepare hashtags term types.
-          // TODO create function.
-        // Now save video_nominee node.
-        $video_node = new stdClass();
-        $video_node->title = $video_name;
-        $video_node->type = 'video_nominee';
-        $video_node->field_online_video_url['und'][0]['value'] = $url;
-        $video_node->field_online_video_url['und'][0]['format'] = 'plain_text'; // @todo replace this with video_filter widget
-        // TODO add taxonomy to video_nominee node.
-        // Twitter author
-        // Category hashtags
-        // Video name hashtag
-        node_object_prepare($video_node);
-        node_save($video_node); 
-      } else {
-        // Build a queue of invalid nominations to process/handle.
-        // @todo.
-      }
+      // Verify no other videos at this URL have been nominated yet.
+      // TODO
     }
-  }
+
+    // If tweet is a valid nomination, 
+    // assign hashtag types.
+    if ($is_nomination && $is_valid) { 
+      $node = video_nominee_hashtag_types($node, $parts, $video_name);
+    } else if (!$is_nomination) {
+      // @todo Should we process hashtags that are not nominations?
+    }
+
+    // If tweed is a valid nomination, create a corresponding video_nominee node.
+    if ($is_nomination && $is_valid) { 
+      $video_node = new stdClass();
+      $video_node->title = $video_name;
+      $video_node->type = 'video_nominee';
+      $video_node->field_online_video_url['und'][0]['value'] = $url;
+      $video_node->field_online_video_url['und'][0]['format'] = 'plain_text'; // @todo replace this with video_filter widget
+      // TODO add taxonomy to video_nominee node.
+      // Twitter author
+      // Category hashtags
+      // Video name hashtag
+      node_object_prepare($video_node);
+      node_save($video_node); 
+    } else if ($is_nomination == TRUE && $is_valid == FALSE) { 
+      // @todo.
+      // Notify submitter nomination failed.
+      // Build a queue of invalid nominations to process/handle.
+    }
+  } // end if ($node->type == 'tweet')
 }
 
 /**
@@ -172,4 +181,33 @@ function _video_nominee_validate_name($video_name) {
   }
 
   return $is_valid; 
+}
+
+/**
+ * Assign hashtag types:
+ * - video name
+ * - video category 
+ * 
+ * video name: 
+ * - Video name is assigned by a valid nomination tweet
+ * - Video name must be unique
+ * - Video name immediately follows the text: "@onlineoscars nomination:"
+
+ * video category:
+ * - Video categories immediately follow the text: "categories: #one #two #etc."
+ * 
+ * @param $node
+ *  $node object for a tweet node.
+ * 
+ * @param $parts
+ *  $parts = explode(' ', $tweet);
+ * 
+ * @param $video_name
+ *  boolean
+ * 
+ * @return $node
+ *  $node object
+ */
+function video_nominee_hashtag_types($node, $parts, $video_name = NULL) { 
+  // CONTINUE HERE
 }

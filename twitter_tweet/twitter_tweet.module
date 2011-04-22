@@ -66,8 +66,19 @@ function twitter_tweet_node_presave($node) {
  * @return
  *  comma separated list of twitter hashtags
  */
+// TODO Combine Referenced Twitter Users and Twitter Hashtags into a single Twitter Tags vocabulary
+// - combine existing vocabularies into Twitter Tags vocabulary
+// - create a Twitter Tag Types vocabulary
+// - make "type" field into a fretagging term reference field
+// - standardize adding types on tweet node presave: 
+// --- @username -> type = 'user reference' or 'user mention' or 'user'
+// --- #hashtag -> type = 'hashtag'
+// --- invoke hook to let other modules (like video_nominee) add/modify types (e.g. 'vide name', 
+//     and 'video category')
+// TODO Modify twitter_tweet_get_hashtags to replace all punctuation with spaces before explode.
 function twitter_tweet_get_hashtags($original_tweet) {
   $hashtags = '';
+  // @todo This is fragile. This breaks: "blah blah #one,#two. Important:#three." 
   $words = explode(' ', $original_tweet);
   foreach($words as $word) {
     if (substr($word, 0, 1) == '#') {

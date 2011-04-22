@@ -68,6 +68,7 @@ function video_nominee_node_presave($node) {
     // If tweet is a valid nomination, 
     // assign hashtag types.
     if ($is_nomination && $is_valid) { 
+      //$node = video_nominee_hashtag_types($node, $parts, $video_name);
       $node = video_nominee_hashtag_types($node, $parts, $video_name);
     } else if (!$is_nomination) {
       // @todo Should we process hashtags that are not nominations?
@@ -192,9 +193,14 @@ function _video_nominee_validate_name($video_name) {
  * - Video name is assigned by a valid nomination tweet
  * - Video name must be unique
  * - Video name immediately follows the text: "@onlineoscars nomination:"
-
+ * 
  * video category:
- * - Video categories immediately follow the text: "categories: #one #two #etc."
+ * - Video categories must...
+ * --- immediately follow the text: "categories:" 
+ * --- be preceded by a space, e.g. "categories: #one #two #etc."
+ * --- end with a period, e.g. "categories: #one #two #three."
+ * @todo make this less fragile. For example, this wouldn't work: 
+ *   "...blah blah blah.categories:#one, #two,#three."
  * 
  * @param $node
  *  $node object for a tweet node.
@@ -208,6 +214,39 @@ function _video_nominee_validate_name($video_name) {
  * @return $node
  *  $node object
  */
-function video_nominee_hashtag_types($node, $parts, $video_name = NULL) { 
-  // CONTINUE HERE
+// TODO CONTINUE HERE. Finish. (See twitter_tweet.module. Replace this with implementation of hook_twitter_tag_type(). )
+function video_nominee_hashtag_types($node, $parts, $video_name = NULL) {
+  $hashtags = $node->field_twitter_hashtags['und'];
+
+  // If there is a $video_name, 'video name' type should be assigned to a taxonomy term. 
+  if ($video_name) {
+    // Find the video name hashtag.
+    foreach ($hashtags as $key => $term) {
+      if ($term['name'] == $video_name) {
+        // If tweet is a valid video nomination, 
+        // and hashtag type is not set yet...
+        if ($parts[0] == '@onlineoscars' && $parts[1] == 'nomination:'
+        && !isset($hashtag['field_twitter_hashtag_type'])) {
+            $node->field_twitter_hashtags['und'][$key]['field_twitter_hashtag_type']['und'][0]['value'] = 'video name';
+        }
+      }
+    }
+  }
+  
+  // Assign 'video category' type to corresponding hashtags.
+  $is_category = FALSE;  
+  foreach ($parts as $part) {
+    // Loop through until we reach category hashtags.
+    if (substr($part, 0, 11) == 'categories:') {
+      $is_category = TRUE; 
+    }
+    // CONTINUE HERE
+    // TODO Figure out how to parse this.
+    //   Consider using twitter_tweet_get_hashtags($original_tweet)
+    //   from twitter_tweet.module line 75
+    if (substr($part, -1) == '.') {
+      $is_category = FALSE; // Category tags end at period.
+    }
+  }
+   
 }

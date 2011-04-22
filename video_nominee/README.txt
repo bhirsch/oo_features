@@ -22,4 +22,9 @@ video name:
 - Video name immediately follows the text: "@onlineoscars nomination:"
 
 video category:
-- Video categories immediately follow the text: "Categories: #one #two #etc."
+- Video categories must...
+--- immediately follow the text: "categories:" 
+--- be preceded by a space, e.g. "categories: #one #two #etc."
+--- end with a period, e.g. "categories: #one #two #three."
+@todo make this less fragile. For example, this wouldn't work: 
+ "...blah blah blah.categories:#one, #two,#three."

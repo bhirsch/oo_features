@@ -1,3 +1,23 @@
+Twitter Tags and Twitter Tag Types Vocabularies
+------------------------------------------------
+Replace these with new vocabularies: 
+./twitter_tweet/twitter_tweet.module:      $hashtags = twitter_tweet_terms($hashtags, array('twitter_hashtags'));
+./twitter_tweet/twitter_tweet.module:    $node->field_twitter_hashtags['und'] = $hashtags;
+./twitter_tweet/twitter_tweet.info:features[field][] = "node-tweet-field_twitter_hashtags"
+./twitter_tweet/twitter_tweet.info:features[taxonomy][] = "twitter_hashtags"
+./twitter_tweet/twitter_tweet.theme.inc:  $twitter_hashtag_terms = twitter_tweet_get_terms($node->field_twitter_hashtags);
+./video_nominee/video_nominee.module:  $hashtags = $node->field_twitter_hashtags['und'];
+./video_nominee/video_nominee.module:            $node->field_twitter_hashtags['und'][$key]['field_twitter_hashtag_type']['und'][0]['value'] = 'video name';
+./video_nominee/video_nominee.info:features[field][] = "node-video_nominee-field_twitter_hashtags"
+./video_nominee/video_nominee.info:features[field][] = "taxonomy_term-twitter_hashtags-field_twitter_hashtag_type"
+
+./twitter_tweet/twitter_tweet.module:      $referenced_users = twitter_tweet_terms($referenced_users, array('twitter_users'));
+./twitter_tweet/twitter_tweet.module:    $node->field_twitter_users['und'] = $referenced_users;
+./twitter_tweet/twitter_tweet.info:features[field][] = "node-tweet-field_twitter_users"
+./twitter_tweet/twitter_tweet.info:features[taxonomy][] = "twitter_users"
+./twitter_tweet/twitter_tweet.theme.inc:  $twitter_user_terms = twitter_tweet_get_terms($node->field_twitter_users);
+./video_nominee/video_nominee.info:features[field][] = "node-video_nominee-field_twitter_users"
+
 Tweet Formatting
 ----------------
 Make url links into hyperlinks(?)

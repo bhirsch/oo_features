@@ -30,86 +30,96 @@ function twitter_tweet_node_validate($node, $form, &$form_state) {
 /**
  * Implements hook_node_presave().
  *
- * Store references to twitter users and hashtags 
- * as taxonomy terms.
+ * Tag tweets with Twitter tags (taxonomy terms belonging to the vocabulary
+ * Twitter Tags).
+ * 
+ * Invoke hook_twitter_tweet_tags() to give modules an opportunity
+ * to add and alter $tags.
+ * 
  */
 function twitter_tweet_node_presave($node) {
   if ($node->type == 'tweet') {
     $original_tweet = $node->field_tweet_original['und'][0]['value'];
 
-    // Prepare hashtag terms.
-    // Pull terms out of tweet in a comma separated list.
-    $hashtags = twitter_tweet_get_hashtags($original_tweet);
-    // Now perpare terms as taxonomy terms, just like taxonomy_autocomplete_validate.
-    if (!empty($hashtags)) {
-      $hashtags = twitter_tweet_terms($hashtags, array('twitter_hashtags'));
-    }
-    // Add terms to node.
-    $node->field_twitter_hashtags['und'] = $hashtags;
+    // Prepare Twitter tags.
+    // Pull tags out of tweet in a comma separated list.
+    $tags = twitter_tweet_get_tags($original_tweet);
+    // Give other modules a chance to alter $tags.
+    $tags = module_invoke_all('twitter_tweet_tags', $original_tweet, $tags);
 
-    // Prepare referenced twitter user terms.
-    // Pull terms out of tweet in a comma separated list.
-    $referenced_users = twitter_tweet_get_referenced_users($original_tweet);
     // Now perpare terms as taxonomy terms.
-    if (!empty($referenced_users)) {
-      $referenced_users = twitter_tweet_terms($referenced_users, array('twitter_users'));
+    if (!empty($tags)) {
+      $tags = twitter_tweet_save_tags($tags);
     }
+
     // Add terms to node.
-    $node->field_twitter_users['und'] = $referenced_users;
+    $node->field_twitter_tags['und'] = $tags;
   }
 }
 
 /**
- * @param $original_tweet
- *  string, tweet from twitter.
+ * Get hashtags and mentions from original tweet. 
  * 
- * @return
- *  comma separated list of twitter hashtags
+ * @param $original_tweet
+ *  String, tweet from twitter.
+ * 
+ * @return $tags.
+ *  Return an array keyed by tag names.
+ *    $tags['name'] = array('types', 'go', 'here');
+ *    e.g. 
+ *    $tags['#example'] = array('hashtag', 'x', 'y', 'z');
+ *    $tags['@jane'] = array('mention', 'a', 'b', 'c');
  */
-// TODO Combine Referenced Twitter Users and Twitter Hashtags into a single Twitter Tags vocabulary
-// - combine existing vocabularies into Twitter Tags vocabulary
-// - create a Twitter Tag Types vocabulary
-// - make "type" field into a fretagging term reference field
-// - standardize adding types on tweet node presave: 
-// --- @username -> type = 'user reference' or 'user mention' or 'user'
-// --- #hashtag -> type = 'hashtag'
-// --- invoke hook to let other modules (like video_nominee) add/modify types (e.g. 'vide name', 
-//     and 'video category')
-// TODO Modify twitter_tweet_get_hashtags to replace all punctuation with spaces before explode.
-function twitter_tweet_get_hashtags($original_tweet) {
-  $hashtags = '';
-  // @todo This is fragile. This breaks: "blah blah #one,#two. Important:#three." 
-  $words = explode(' ', $original_tweet);
+function twitter_tweet_get_tags($original_tweet) {
+  // Replace punctuation with spaces.
+  $tweet = twitter_tweet_replace_punctuation($original_tweet);
+  $tags = array();
+
+  // Get hashtags.
+  $words = explode(' ', $tweet);
   foreach($words as $word) {
     if (substr($word, 0, 1) == '#') {
-      $word = twitter_tweet_filter_punctuation($word);
-      $hashtags .= $word . ', ';
+      $tags[$word][] = 'hashtag';
     } 
   }
-  $hashtags = substr($hashtags, 0, -2); // remove last comma and space.
 
-  return $hashtags;
+  // Get mentions.
+  foreach($words as $word) {
+    if (substr($word, 0, 1) == '@') {
+      $tags[$word][] = 'mention';
+    } 
+  }
+
+  return $tags;
 }
 
 /**
  * @param $original_tweet
- *  string, tweet from twitter.
- * 
- * @return
- *  comma separated list of referenced twitter users.
+ *  String, original Twitter tweet.
+ *
+ * @return $tweet
+ *  String with punctuation that breaks Twitter hashtags and mentions replaced with 
+ *  spaces.
  */
-function twitter_tweet_get_referenced_users($original_tweet) {
-  $referenced_users = ''; 
-  $words = explode(' ', $original_tweet);
-  foreach($words as $word) {
-    if (substr($word, 0, 1) == '@') {
-      $word = twitter_tweet_filter_punctuation($word);
-      $referenced_users .= $word . ', ';
-    } 
+function twitter_tweet_replace_punctuation($original_tweet) {
+  // Punctuation marks, except underscore, end hashtag wherever punctuation occurs.
+  // Replace this punctuation with spaces, so it's easy to explode and create taxonomy
+  // terms corresponding with actual Twitter hashtags and user mentions.
+  // e.g. on Twitter #this-breaks creates a hashtag called #this.
+  $chars = array();
+  $chars['find'] = array(
+    '-',"'",'.',':',';',
+    '~','`','!','$','%','^',
+    '&','*','(',')','+','=','<','>',
+    '/','?',',','[','{',']','}','|','\\',
+  );
+  // Create a replacement for each character in the $chars['find'] array.
+  foreach($chars as $char) {
+    $chars['replace'] = ' ';
   }
-  $referenced_users = substr($referenced_users, 0, -2); // remove last comma and space.
+  $tweet = str_replace($chars['find'], $chars['replace'], $original_tweet);
 
-  return $referenced_users;
+  return $tweet;
 }
 
 /**
@@ -118,6 +128,8 @@ function twitter_tweet_get_referenced_users($original_tweet) {
  *
  * @return $word
  *  string with punctuation that breaks hashtags and user references filtered out.
+ *
+ * @todo Is this still useful or used anywhere? Remove?
  */
 function twitter_tweet_filter_punctuation($word) {
   // Punctuation marks, except underscore, end hashtag wherever punctuation occurs.
@@ -144,50 +156,93 @@ function twitter_tweet_filter_punctuation($word) {
 
 /**
  * @param $tags
- *  String, comma separated list of terms (e.g. hashtags or user names).
+ *  $tags array returned by twitter_tweet_get_tags().
  * 
- * @param $vocabs
- *  array, vocabulary machine name(s)
- *
  * @return $value
  *  Array of taxonomy term arrays.
  *
  * @see taxonomy_autocomplete_validate().
  * @see taxonomy_field_presave().
  */
-function twitter_tweet_terms($tags, $vocabs) {
+function twitter_tweet_save_tags($tags) {
   $value = array();
 
   // Collect candidate vocabularies.
   $vocabularies = array();
-  foreach ($vocabs as $vocab) {
-    if ($vocabulary = taxonomy_vocabulary_machine_name_load($vocab)) {
-      $vocabularies[$vocabulary->vid] = $vocabulary;
-    }
+  if ($vocabulary = taxonomy_vocabulary_machine_name_load('twitter_tags')) {
+    $vocabularies[$vocabulary->vid] = $vocabulary;
   }
 
   // Translate term names into actual terms.
-  $typed_terms = drupal_explode_tags($tags);
-  foreach ($typed_terms as $typed_term) {
-    // See if the term exists in the chosen vocabulary and return the tid;
-    // otherwise, create a new 'autocreate' term for insert/update.
-    if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($typed_term), 'vid' => array_keys($vocabularies)))) {
+  //$typed_terms = drupal_explode_tags($tags);
+  foreach ($tags as $tag_name => $tag_types) {
+    // First save any new tag types. These are taxonomy terms too.
+    $types = twitter_tweet_save_tag_types($tag_types);
+
+    // See if the term exists and return the tid;
+    // otherwise, create a new term for insert/update.
+    if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($tag_name), 'vid' => array_keys($vocabularies)))) {
+      $term = array_pop($possibilities);
+      // Check Twitter tag types.
+      if ($term->field_twitter_tag_types['und'] != $types) {
+        $term->field_twitter_tag_types = array('und' => $types);
+        taxonomy_term_save($term);
+      }
+    }
+    else {
+      $vocabulary = reset($vocabularies);
+      $term = array(
+        'vid' => $vocabulary->vid,
+        'name' => $tag_name,
+        'vocabulary_machine_name' => $vocabulary->machine_name,
+      );
+      $term = (object) $term;
+      $term->field_twitter_tag_types = array('und' => $types);
+      taxonomy_term_save($term);
+    }
+    $value[] = (array)$term;
+  }
+
+  return $value;
+}
+
+/**
+ * @param $tag_types
+ *  Array of tag types like this: array('hashtag', 'x', 'y', 'z').
+ * 
+ * @return $types
+ *  An array of taxonomy term arrays ready to be saved 
+ *  in a tweet's field_twitter_tag_type.
+ */
+function twitter_tweet_save_tag_types($tag_types) {
+  $types = array();
+
+  // Collect candidate vocabularies.
+  $vocabularies = array();
+  if ($vocabulary = taxonomy_vocabulary_machine_name_load('twitter_tag_types')) {
+    $vocabularies[$vocabulary->vid] = $vocabulary;
+  }
+
+  // Translate term names into actual terms.
+  foreach ($tag_types as $type) {
+    // See if the term exists and return the tid;
+    // otherwise, create a new term for insert/update.
+    if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($type), 'vid' => array_keys($vocabularies)))) {
       $term = array_pop($possibilities);
     }
     else {
       $vocabulary = reset($vocabularies);
       $term = array(
-        //'tid' => 'autocreate',
         'vid' => $vocabulary->vid,
-        'name' => $typed_term,
+        'name' => $type,
         'vocabulary_machine_name' => $vocabulary->machine_name,
       );
       $term = (object) $term;
       taxonomy_term_save($term);
       $term = (array) $term;
     }
-    $value[] = (array)$term;
+    $types[] = (array)$term;
   }
 
-  return $value;
+  return $types;
 }

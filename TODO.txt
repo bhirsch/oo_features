@@ -18,6 +18,8 @@ Replace these with new vocabularies:
 ./twitter_tweet/twitter_tweet.theme.inc:  $twitter_user_terms = twitter_tweet_get_terms($node->field_twitter_users);
 ./video_nominee/video_nominee.info:features[field][] = "node-video_nominee-field_twitter_users"
 
+Replace video_nominee Twitter Author field with nodereference to nomination tweet.
+
 Tweet Formatting
 ----------------
 Make url links into hyperlinks(?)

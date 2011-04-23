@@ -37,63 +37,10 @@ function video_nominee_node_validate($node, $form, &$form_state) {
  * 
  * Create corresponding video_nominee node.
  */
+/*
 function video_nominee_node_presave($node) {
-  if ($node->type == 'tweet') {
-
-    // Determine whether tweet is a video nomination.
-    foreach ($node->field_tweet_original as $field_tweet_original) {
-      // Nominations look like this: 
-      // @onlineoscars nomination: #video_name http://something.com/video/url. 
-      // categories #one #two #etc.
-      $tweet = strtolower($field_tweet_original[0]['value']);
-      $is_nomination = (substr($tweet, 0, 25) == '@onlineoscars nomination:') ? TRUE : FALSE;
-    }
-
-    // @todo Report validation errors to user via Twitter when validation fails.
-    //
-    // Validate nomination by making sure it has the minimum required parts.
-    if ($is_nomination) {
-      $parts = explode(' ', $tweet);
-      // Validate name. Verify $video_name is not taken.
-      $video_name = $parts[2];
-      $is_valid = _video_nominee_validate_name($video_name);
-      // Validate video url. Verify $url is a valid URL.
-      $url = $parts[3];
-      $url = _video_nominee_validate_url($url);
-      $is_valid = ($url) ? $is_valid : FALSE; 
-      // Verify no other videos at this URL have been nominated yet.
-      // TODO
-    }
-
-    // If tweet is a valid nomination, 
-    // assign hashtag types.
-    if ($is_nomination && $is_valid) { 
-      //$node = video_nominee_hashtag_types($node, $parts, $video_name);
-      $node = video_nominee_hashtag_types($node, $parts, $video_name);
-    } else if (!$is_nomination) {
-      // @todo Should we process hashtags that are not nominations?
-    }
-
-    // If tweed is a valid nomination, create a corresponding video_nominee node.
-    if ($is_nomination && $is_valid) { 
-      $video_node = new stdClass();
-      $video_node->title = $video_name;
-      $video_node->type = 'video_nominee';
-      $video_node->field_online_video_url['und'][0]['value'] = $url;
-      $video_node->field_online_video_url['und'][0]['format'] = 'plain_text'; // @todo replace this with video_filter widget
-      // TODO add taxonomy to video_nominee node.
-      // Twitter author
-      // Category hashtags
-      // Video name hashtag
-      node_object_prepare($video_node);
-      node_save($video_node); 
-    } else if ($is_nomination == TRUE && $is_valid == FALSE) { 
-      // @todo.
-      // Notify submitter nomination failed.
-      // Build a queue of invalid nominations to process/handle.
-    }
-  } // end if ($node->type == 'tweet')
 }
+// */
 
 /**
  * Implements hook_field_presave().
@@ -199,54 +146,112 @@ function _video_nominee_validate_name($video_name) {
  * --- immediately follow the text: "categories:" 
  * --- be preceded by a space, e.g. "categories: #one #two #etc."
  * --- end with a period, e.g. "categories: #one #two #three."
- * @todo make this less fragile. For example, this wouldn't work: 
- *   "...blah blah blah.categories:#one, #two,#three."
  * 
- * @param $node
- *  $node object for a tweet node.
+ * @param $tweet
+ *  string, strtolower($original_tweet)
  * 
- * @param $parts
- *  $parts = explode(' ', $tweet);
+ * @param $tags
+ *  @see twitter_tweet_get_tags().
  * 
  * @param $video_name
  *  boolean
  * 
- * @return $node
- *  $node object
+ * @return $tags
+ *  @see twitter_tweet_get_tags().
  */
-// TODO CONTINUE HERE. Finish. (See twitter_tweet.module. Replace this with implementation of hook_twitter_tag_type(). )
-function video_nominee_hashtag_types($node, $parts, $video_name = NULL) {
-  $hashtags = $node->field_twitter_hashtags['und'];
-
+function video_nominee_tag_types($tweet, $tags, $video_name = NULL) {
   // If there is a $video_name, 'video name' type should be assigned to a taxonomy term. 
   if ($video_name) {
     // Find the video name hashtag.
-    foreach ($hashtags as $key => $term) {
-      if ($term['name'] == $video_name) {
-        // If tweet is a valid video nomination, 
-        // and hashtag type is not set yet...
-        if ($parts[0] == '@onlineoscars' && $parts[1] == 'nomination:'
-        && !isset($hashtag['field_twitter_hashtag_type'])) {
-            $node->field_twitter_hashtags['und'][$key]['field_twitter_hashtag_type']['und'][0]['value'] = 'video name';
-        }
+    foreach ($tags as $tag_name => $tag_types) {
+      if ($tag_name == $video_name) {
+        $tags[$tag_name][] = 'video name';
       }
     }
   }
   
   // Assign 'video category' type to corresponding hashtags.
-  $is_category = FALSE;  
-  foreach ($parts as $part) {
-    // Loop through until we reach category hashtags.
-    if (substr($part, 0, 11) == 'categories:') {
-      $is_category = TRUE; 
-    }
-    // CONTINUE HERE
-    // TODO Figure out how to parse this.
-    //   Consider using twitter_tweet_get_hashtags($original_tweet)
-    //   from twitter_tweet.module line 75
-    if (substr($part, -1) == '.') {
-      $is_category = FALSE; // Category tags end at period.
+  // Category tags start immediately after 'categories:' or 'category:'.
+  if (!$start_position = strpos($tweet, 'categories:')) {
+    $start_position = strpos($tweet, 'category:');
+  }
+  // If there are any category tags, they end at period.
+  if ($start_position) {
+    if (!$end_position = strpos($tweet, '.', $start_position)) {
+      $end_position = strlen($tweet);  
     }
   }
-   
+  $categories_string = substr($tweet, $start_position, $end_position); 
+  $category_tags = twitter_tweet_get_tags($categories_string);
+  foreach ($tags as $tag_name => $tag_types) {
+    if (array_key_exists($tag_name, $category_tags)) {
+      $tags[$tag_name][] = 'video category';
+    }
+  }
+  
+  return $tags;
+}
+
+/**
+ * Implements hook_twitter_tweet_tags().
+ */
+//function video_nominee_twitter_tweet_tags_alter($original_tweet, $tags) {
+function video_nominee_twitter_tweet_tags($original_tweet, $tags) {
+  // Determine whether tweet is a video nomination.
+  //   Nominations look like this: 
+  //   @onlineoscars nomination: #video_name http://something.com/video/url. 
+  //   categories #one #two #etc.
+  $tweet = strtolower($original_tweet);
+  $is_nomination = (substr($tweet, 0, 25) == '@onlineoscars nomination:') ? TRUE : FALSE;
+
+  // @todo Report validation errors to user via Twitter when validation fails.
+  //
+  // If someone submitting a nomination, make sure it's a valid nomination.
+  // Validate nomination by making sure it has the minimum required parts.
+  if ($is_nomination) {
+    $parts = explode(' ', $tweet);
+    // Validate name. Verify $video_name is not taken.
+    $video_name = $parts[2];
+    $is_valid = _video_nominee_validate_name($video_name);
+    // Validate video url. Verify $url is a valid URL.
+    $url = $parts[3];
+    $url = _video_nominee_validate_url($url);
+    $is_valid = ($url) ? $is_valid : FALSE; 
+    // Verify no other videos at this URL have been nominated yet.
+    // TODO
+  }
+
+// CONTINUE HERE. REMOVE.
+// TODO TEMP RETURN VALID EVEN IF INVALID. OFFLINE IN AIRPORT $url WON'T VALIDATE.
+$is_valid = TRUE;
+
+
+  // If tweet is a valid nomination, 
+  // assign hashtag types.
+  if ($is_nomination && $is_valid) { 
+    $tags = video_nominee_tag_types($tweet, $tags, $video_name);
+  } else if (!$is_nomination) {
+    // @todo Should we process hashtags that are not nominations?
+  }
+
+  // If tweet is a valid nomination, create a corresponding video_nominee node.
+  if ($is_nomination && $is_valid) { 
+    $video_node = new stdClass();
+    $video_node->title = $video_name;
+    $video_node->type = 'video_nominee';
+    $video_node->field_online_video_url['und'][0]['value'] = $url;
+    $video_node->field_online_video_url['und'][0]['format'] = 'plain_text'; // @todo replace this with video_filter widget
+    // TODO add taxonomy to video_nominee node.
+    // Twitter author
+    // Category hashtags
+    // Video name hashtag
+    node_object_prepare($video_node);
+    node_save($video_node); 
+  } else if ($is_nomination == TRUE && $is_valid == FALSE) { 
+    // @todo.
+    // Notify submitter nomination failed.
+    // Build a queue of invalid nominations to process/handle.
+  }
+
+  return $tags;  
 }

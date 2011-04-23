@@ -7,6 +7,7 @@ example:
 OR 
 
 @onlineoscars nomination: #video_name http://something.com/video/url. Categories: #one #two #etc.
+@onlineoscars nomination: #video_name http://something.com/video/url. Category: #one.
 example: 
 @onlineoscars nomination: #battle_at_kruger http://bit.ly/uec9. Categories: #action #adventure #drama.
 

@@ -34,30 +34,25 @@ function theme_field__field_tweet_original($elements) {
     $tweet = $original_tweet[0]['safe_value']; 
   }
 
-  // Replace user names with hyperlinks.
-  $twitter_user_terms = twitter_tweet_get_terms($node->field_twitter_users);
-  $items = _twitter_tweet_prepare_replace($twitter_user_terms);
+  // Replace Twitter mentions and hashtags with hyperlinks.
+  $twitter_terms = twitter_tweet_get_terms($node->field_twitter_tags);
+  $items = _twitter_tweet_prepare_replace($twitter_terms);
   $tweet = str_replace($items['find'], $items['replace'], $tweet);
 
-  // Replace hashtags with hyperlinks.
-  $twitter_hashtag_terms = twitter_tweet_get_terms($node->field_twitter_hashtags);
-  $items = _twitter_tweet_prepare_replace($twitter_hashtag_terms);
-  $tweet = str_replace($items['find'], $items['replace'], $tweet);
-  
   return $tweet;
 }
 
 /**
  * Input a taxonomy field and return an array of taxonomy terms keyed by term name.
  * 
- * @params $term_groups
- *  array, $node->taxonomy_field_name
+ * @params $terms_field
+ *  array, $node->taxonomy_terms_field_name
  * 
  * @return $taxonomy_terms
  *  array('term name' => $term_object);
  */
-function twitter_tweet_get_terms($term_groups) {
-  foreach ($term_groups as $terms) {
+function twitter_tweet_get_terms($terms_field) {
+  foreach ($terms_field as $terms) {
    foreach ($terms as $term) {
      $taxonomy_term = $term['taxonomy_term'];
      $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  

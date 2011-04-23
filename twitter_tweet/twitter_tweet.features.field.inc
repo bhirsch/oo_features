@@ -73,7 +73,7 @@ function twitter_tweet_field_default_fields() {
           'size' => '60',
         ),
         'type' => 'text_textfield',
-        'weight' => '-1',
+        'weight' => '1',
       ),
     ),
   );
@@ -146,19 +146,19 @@ function twitter_tweet_field_default_fields() {
           'size' => 60,
         ),
         'type' => 'taxonomy_autocomplete',
-        'weight' => '-3',
+        'weight' => '2',
       ),
     ),
   );
 
-  // Exported field: 'node-tweet-field_twitter_hashtags'
-  $fields['node-tweet-field_twitter_hashtags'] = array(
+  // Exported field: 'node-tweet-field_twitter_tags'
+  $fields['node-tweet-field_twitter_tags'] = array(
     'field_config' => array(
       'active' => '1',
       'cardinality' => '-1',
       'deleted' => '0',
       'entity_types' => array(),
-      'field_name' => 'field_twitter_hashtags',
+      'field_name' => 'field_twitter_tags',
       'foreign keys' => array(
         'tid' => array(
           'columns' => array(
@@ -177,7 +177,7 @@ function twitter_tweet_field_default_fields() {
         'allowed_values' => array(
           0 => array(
             'parent' => '0',
-            'vocabulary' => 'twitter_hashtags',
+            'vocabulary' => 'twitter_tags',
           ),
         ),
       ),
@@ -195,7 +195,7 @@ function twitter_tweet_field_default_fields() {
           'module' => 'taxonomy',
           'settings' => array(),
           'type' => 'taxonomy_term_reference_link',
-          'weight' => 2,
+          'weight' => 4,
         ),
         'teaser' => array(
           'label' => 'above',
@@ -205,8 +205,8 @@ function twitter_tweet_field_default_fields() {
         ),
       ),
       'entity_type' => 'node',
-      'field_name' => 'field_twitter_hashtags',
-      'label' => 'Twitter Hashtags',
+      'field_name' => 'field_twitter_tags',
+      'label' => 'Twitter Tags',
       'required' => 0,
       'settings' => array(
         'user_register_form' => FALSE,
@@ -219,19 +219,19 @@ function twitter_tweet_field_default_fields() {
           'size' => 60,
         ),
         'type' => 'taxonomy_autocomplete',
-        'weight' => '-2',
+        'weight' => '3',
       ),
     ),
   );
 
-  // Exported field: 'node-tweet-field_twitter_users'
-  $fields['node-tweet-field_twitter_users'] = array(
+  // Exported field: 'taxonomy_term-twitter_tags-field_twitter_tag_types'
+  $fields['taxonomy_term-twitter_tags-field_twitter_tag_types'] = array(
     'field_config' => array(
       'active' => '1',
       'cardinality' => '-1',
       'deleted' => '0',
       'entity_types' => array(),
-      'field_name' => 'field_twitter_users',
+      'field_name' => 'field_twitter_tag_types',
       'foreign keys' => array(
         'tid' => array(
           'columns' => array(
@@ -250,7 +250,7 @@ function twitter_tweet_field_default_fields() {
         'allowed_values' => array(
           0 => array(
             'parent' => '0',
-            'vocabulary' => 'twitter_users',
+            'vocabulary' => 'twitter_tag_types',
           ),
         ),
       ),
@@ -258,10 +258,10 @@ function twitter_tweet_field_default_fields() {
       'type' => 'taxonomy_term_reference',
     ),
     'field_instance' => array(
-      'bundle' => 'tweet',
+      'bundle' => 'twitter_tags',
       'default_value' => NULL,
       'deleted' => '0',
-      'description' => '',
+      'description' => 'All twitter tags are automatically assigned one of two type descriptions: hashtag or mention. (For example #this is a hashtag and @this is a mention.) You can add your own tag types here too. ',
       'display' => array(
         'default' => array(
           'label' => 'above',
@@ -270,16 +270,10 @@ function twitter_tweet_field_default_fields() {
           'type' => 'taxonomy_term_reference_link',
           'weight' => 0,
         ),
-        'teaser' => array(
-          'label' => 'above',
-          'settings' => array(),
-          'type' => 'hidden',
-          'weight' => 0,
-        ),
       ),
-      'entity_type' => 'node',
-      'field_name' => 'field_twitter_users',
-      'label' => 'Referenced Twitter Users',
+      'entity_type' => 'taxonomy_term',
+      'field_name' => 'field_twitter_tag_types',
+      'label' => 'Twitter Tag Types',
       'required' => 0,
       'settings' => array(
         'user_register_form' => FALSE,
@@ -292,17 +286,18 @@ function twitter_tweet_field_default_fields() {
           'size' => 60,
         ),
         'type' => 'taxonomy_autocomplete',
-        'weight' => '-4',
+        'weight' => '1',
       ),
     ),
   );
 
   // Translatables
   // Included for use with string extractors like potx.
+  t('All twitter tags are automatically assigned one of two type descriptions: hashtag or mention. (For example #this is a hashtag and @this is a mention.) You can add your own tag types here too. ');
   t('Original Tweet');
-  t('Referenced Twitter Users');
   t('Twitter Author');
-  t('Twitter Hashtags');
+  t('Twitter Tag Types');
+  t('Twitter Tags');
 
   return $fields;
 }

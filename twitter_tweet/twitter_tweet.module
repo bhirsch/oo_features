@@ -41,19 +41,19 @@ function twitter_tweet_node_presave($node) {
   if ($node->type == 'tweet') {
     $original_tweet = $node->field_tweet_original['und'][0]['value'];
 
-    // Prepare Twitter tags.
+    // Add taxonomy terms to Twitter Tags vocabulary.
+    //
     // Pull tags out of tweet in a comma separated list.
     $tags = twitter_tweet_get_tags($original_tweet);
     // Give other modules a chance to alter $tags.
-    $tags = module_invoke_all('twitter_tweet_tags', $original_tweet, $tags);
-
+    $tags = module_invoke_all('twitter_tweet_tags', $node, $tags);
     // Now perpare terms as taxonomy terms.
     if (!empty($tags)) {
       $tags = twitter_tweet_save_tags($tags);
     }
-
     // Add terms to node.
     $node->field_twitter_tags['und'] = $tags;
+
   }
 }
 

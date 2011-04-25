@@ -1,13 +1,3 @@
-Twitter Tags and Twitter Tag Types Vocabularies
-------------------------------------------------
-Replace these with new vocabularies: 
-./twitter_tweet/twitter_tweet.info:features[field][] = "node-tweet-field_twitter_hashtags"
-./twitter_tweet/twitter_tweet.info:features[taxonomy][] = "twitter_hashtags"
-./twitter_tweet/twitter_tweet.info:features[field][] = "node-tweet-field_twitter_users"
-./twitter_tweet/twitter_tweet.info:features[taxonomy][] = "twitter_users"
-./video_nominee/video_nominee.info:features[field][] = "node-video_nominee-field_twitter_users"
-
-
 Content Types
 -------------
 Tweet nomination or Video Nominee should contain a node reference to the other.

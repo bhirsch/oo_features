@@ -20,11 +20,11 @@ Nominations must:
 video name: 
 - Video name is assigned by a valid nomination tweet
 - Video name must be unique
-- Video name immediately follows the text: "@onlineoscars nomination:"
+- Video name immediately follows the text: "@onlineoscars nomination"
 
 video category:
 - Video categories must...
---- immediately follow the text: "categories:" 
+--- immediately follow the text: "categories" 
 --- be preceded by a space, e.g. "categories: #one #two #etc."
 --- end with a period, e.g. "categories: #one #two #three."
 @todo make this less fragile. For example, this wouldn't work: 

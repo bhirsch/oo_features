@@ -30,7 +30,7 @@ function video_nominee_node_validate($node, $form, &$form_state) {
  * video nominations. If they are, add relevant tags and create corresponding
  * video_nominee node.
  * 
- * Implements hook_twitter_tweet_tags().
+ * Implements hook_twitter_tweet_tags_alter().
  *
  * @param $node
  *  Node object of tweet node during hook_node_presave().
@@ -41,8 +41,7 @@ function video_nominee_node_validate($node, $form, &$form_state) {
  * @return $tags
  *  Modified terms to save with $node.
  */
-//function video_nominee_twitter_tweet_tags_alter($original_tweet, $tags) {
-function video_nominee_twitter_tweet_tags($node, $tags) {
+function video_nominee_twitter_tweet_tags_alter($node, $tags) {
   // Check tweet to determine if it's a video nomination. 
   // If it is, get info.
   $original_tweet = $node->field_tweet_original['und'][0]['value'];

@@ -46,7 +46,7 @@ function twitter_tweet_node_presave($node) {
     // Pull tags out of tweet in a comma separated list.
     $tags = twitter_tweet_get_tags($original_tweet);
     // Give other modules a chance to alter $tags.
-    $tags = module_invoke_all('twitter_tweet_tags', $node, $tags);
+    $tags = module_invoke_all('twitter_tweet_tags_alter', $node, $tags);
     // Now perpare terms as taxonomy terms.
     if (!empty($tags)) {
       $tags = twitter_tweet_save_tags($tags);

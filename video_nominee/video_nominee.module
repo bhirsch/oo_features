@@ -91,7 +91,7 @@ function _video_nominee_create_node($nomination_info, $tags, $author) {
 
   $node->type = 'video_nominee';
   $node->title = $nomination_info['video name'];
-  $node->field_online_video_url['und'][0]['value'] = $nomination_info['url'];
+  $node->field_video_url['und'][0]['url'] = $nomination_info['url'];
   // Save Twitter Author term (that is, the person who nominated this video).
   $node->field_twitter_author['und'][0]['tid'] = $author;
   // Save video name and video category Twitter Tags terms.

@@ -26,20 +26,22 @@ function twitter_tweet_preprocess_field(&$variables) {
 }
 // */
 
+// @todo replace this with a propper field formatter.
 function theme_field__field_tweet_original($elements) {
-  $node = $elements['element']['#object'];
+  if ($node = $elements['element']['#object']) {
+    if ($node->type == 'tweet') {
+      // Get original tweet, to be themed.
+      foreach($node->field_tweet_original as $original_tweet) {
+        $tweet = $original_tweet[0]['safe_value']; 
+      }
+      // Replace Twitter mentions and hashtags with hyperlinks.
+      $twitter_terms = twitter_tweet_get_terms($node->field_twitter_tags);
+      $items = _twitter_tweet_prepare_replace($twitter_terms);
+      $tweet = str_replace($items['find'], $items['replace'], $tweet);
 
-  // Get original tweet, to be themed.
-  foreach($node->field_tweet_original as $original_tweet) {
-    $tweet = $original_tweet[0]['safe_value']; 
-  }
-
-  // Replace Twitter mentions and hashtags with hyperlinks.
-  $twitter_terms = twitter_tweet_get_terms($node->field_twitter_tags);
-  $items = _twitter_tweet_prepare_replace($twitter_terms);
-  $tweet = str_replace($items['find'], $items['replace'], $tweet);
-
-  return $tweet;
+      return $tweet;
+    }
+  } 
 }
 
 /**

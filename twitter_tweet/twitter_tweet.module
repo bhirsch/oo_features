@@ -284,3 +284,47 @@ function twitter_tweet_get_tag_types($tid) {
     return FALSE;  
   }
 }
+
+/**
+ * Implements hook_taxonomy_term_presave(). 
+ * 
+ * Generate path alias for new terms. 
+ *
+ * @todo Add admin option to disable auto-creation of term path.
+ */
+function twitter_tweet_taxonomy_term_presave($term) {
+  if ($term->vocabulary_machine_name == 'twitter_tags') {
+    if ($alias = _twitter_tweet_term_alias($term)) {
+      $term->path['alias'] = $alias;
+      // @todo Revisit. Language 'und' probably shouldn't be hardcoded.
+      $term->path['language'] = 'und';
+    }
+    // @todo All Twitter Tags are hashtags OR mentions. Never both. Add validation here.
+  }
+}
+
+/**
+ * @param $term
+ *  Taxonomy term object.
+ * 
+ * @return 
+ *  String for alias to be used in $term->path['alias'].
+ */
+function _twitter_tweet_term_alias($term) {
+  $alias = '';
+
+  // This has already been striped of spaces and punctuation.
+  // Twitter tags begin with @ or #.
+  $name = $term->name;
+  if (substr($name, 0, 1) == '#') {
+    $alias = t('hashtag') . '/' . substr($name, 1);  
+  }
+  else if (substr($name, 0, 1) == '@') {
+    $alias = t('mention') . '/' . substr($name, 1);  
+  }
+  else {
+    return FALSE;  
+  }
+
+  return $alias;
+}

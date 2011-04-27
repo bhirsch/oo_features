@@ -35,9 +35,10 @@ function theme_field__field_tweet_original($elements) {
         $tweet = $original_tweet[0]['safe_value']; 
       }
       // Replace Twitter mentions and hashtags with hyperlinks.
-      $twitter_terms = twitter_tweet_get_terms($node->field_twitter_tags);
-      $items = _twitter_tweet_prepare_replace($twitter_terms);
-      $tweet = str_replace($items['find'], $items['replace'], $tweet);
+      if ($twitter_terms = twitter_tweet_get_terms($node->field_twitter_tags)) {
+        $items = _twitter_tweet_prepare_replace($twitter_terms);
+        $tweet = str_replace($items['find'], $items['replace'], $tweet);
+      } 
 
       return $tweet;
     }
@@ -63,6 +64,9 @@ function twitter_tweet_get_terms($terms_field) {
        $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  
      }
    }
+  }
+  if (empty($taxonomy_terms)) {
+    $taxonomy_terms = FALSE; 
   }
 
   return $taxonomy_terms;

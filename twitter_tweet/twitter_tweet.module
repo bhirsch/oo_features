@@ -119,6 +119,8 @@ function twitter_tweet_replace_punctuation($original_tweet) {
   }
   $tweet = str_replace($chars['find'], $chars['replace'], $original_tweet);
 
+  // @todo Check for rogue @ or # symbols standing alone.
+
   return $tweet;
 }
 
@@ -245,4 +247,40 @@ function twitter_tweet_save_tag_types($tag_types) {
   }
 
   return $types;
+}
+
+/**
+ * Twitter Tags have a taxonomy field called Twitter Tag Type.
+ * This function takes a Twitter tag and returns it's types.
+ * Standard types include "hashtag" and "mention". Other modules
+ * can add their own Twitter tag types.
+ * 
+ * @param
+ *  Integer, term id of a Twitter tag.
+ * 
+ * @return
+ *  Array $tag_types = array( tid => 'tag type name' );
+ */
+function twitter_tweet_get_tag_types($tid) {
+  $tag_types = array();
+  $tids = array();
+
+  $tag = taxonomy_term_load($tid);
+  if (property_exists($tag, 'field_twitter_tag_types') 
+  && isset($tag->field_twitter_tag_types)) {
+    foreach ($tag->field_twitter_tag_types as $types) {
+      foreach ($types as $type) {
+        $tids[] = $type['tid'];
+      }
+      $tag_types = taxonomy_term_load_multiple($tids);
+      foreach ($tag_types as $tid => $obj) {
+        $tag_types[$tid] = $obj->name;  
+      }
+    }
+
+  return $tag_types;
+  }
+  else {
+    return FALSE;  
+  }
 }

@@ -258,6 +258,8 @@ function _video_nominee_tag_types($original_tweet, $tags, $video_name = NULL) {
       $tags[$tag_name][] = 'video category';
     }
   }
+
+  // @todo for some reason this is breaking when there are additional mentions after categories. figure out why.
   
   return $tags;
 }

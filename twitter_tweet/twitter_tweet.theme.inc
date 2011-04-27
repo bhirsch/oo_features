@@ -78,6 +78,10 @@ function twitter_tweet_get_terms($terms_field) {
 function _twitter_tweet_prepare_replace($terms) {
   $items = array();
   foreach ($terms as $term) {
+    // @todo Figure out why mentions don't have $uri->tid.
+    if (!property_exists($term, 'uri')) {
+      $term->uri['path'] = "taxonomy/term/$term->tid";  
+    }
     $items['find'][] = $term->name;
     $items['replace'][] = l($term->name, $term->uri['path']);
   }

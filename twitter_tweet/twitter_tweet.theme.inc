@@ -62,7 +62,14 @@ function twitter_tweet_theme($existing, $type, $theme, $path) {
  * Returns HTML for tweet.
  */
 function theme_twitter_tweet_formatter($vars) {
-  $output = str_replace($vars['find'], $vars['replace'], $vars['tweet']);
+  $tweet = $vars['tweet'];
+  $find = $vars['find']; 
+  $replace = $vars['replace']; 
+
+  // Convert hyperlinks to links.
+  $tweet = check_markup($tweet);
+  // Now replace hashtags and mentions with links to taxonomy terms.
+  $output = str_replace($find, $replace, $tweet);
 
   return $output;
 }
@@ -99,7 +106,7 @@ function twitter_tweet_get_terms($terms_field) {
 
 /**
  * @param $terms
- *  array of taxonomy term objects keyed by term name
+ *  Array of taxonomy term objects keyed by term name.
  * 
  * @return $items
  *  array, $items['find'] = array('find this', 'then this', 'next this');

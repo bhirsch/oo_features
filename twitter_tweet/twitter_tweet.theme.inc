@@ -56,8 +56,10 @@ function theme_field__field_tweet_original($elements) {
 function twitter_tweet_get_terms($terms_field) {
   foreach ($terms_field as $terms) {
    foreach ($terms as $term) {
-     $taxonomy_term = $term['taxonomy_term'];
-     $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  
+     if (isset($term['taxonomy_term'])) {
+       $taxonomy_term = $term['taxonomy_term'];
+       $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  
+     }
    }
   }
   return $taxonomy_terms;

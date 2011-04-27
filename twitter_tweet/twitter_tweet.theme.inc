@@ -3,46 +3,68 @@
  * @file twitter_tweet.theme.inc
  *  Theme Twitter tweets.
  */
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function twitter_tweet_field_formatter_info() { 
+  return array(
+    'twitter_tweet' => array(
+      'label' => t('Tweet'),
+      'field types' => array('text'),
+    ),
+  );
+} 
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function twitter_tweet_field_formatter_view($obj_type, $object, $field, 
+                                           $instance, $langcode, $items, 
+                                           $display) { 
+  $node = $object; 
+
+  $elements = array();
+  foreach ($items as $delta => $item) {
+    $tweet = $item['safe_value'];
+
+    // Replace Twitter mentions and hashtags with hyperlinks.
+    if ($twitter_terms = twitter_tweet_get_terms($node->field_twitter_tags)) {
+      $terms = _twitter_tweet_prepare_replace($twitter_terms);
+    } 
+
+    $find = (isset($terms['find'])) ? $terms['find'] : array();
+    $replace = (isset($terms['replace'])) ? $terms['replace'] : array();
+
+    $elements[$delta] = array(
+      '#theme' => 'twitter_tweet_formatter',
+      '#tweet' => $tweet,
+      '#find' => $find,
+      '#replace' => $replace,
+    );
+  }
+
+  return $elements;
+}
+
 /**
  * Implements hook_theme().
  */
 function twitter_tweet_theme($existing, $type, $theme, $path) {
   return array(
-    'field__field_tweet_original' => array(
-      'render element' => 'elements',
+    'twitter_tweet_formatter' => array(
+      'variables' => array('tweet' => NULL, 'find' => array(), 'replace' => array()),
     ),
   );
 }
-// */
 
 /**
- * Implements hook_preprocess_field().
+ * Returns HTML for tweet.
  */
-/*
-function twitter_tweet_preprocess_field(&$variables) {
-  if ($variables['element']['#field_name'] == 'field_tweet_original') {
-  //  dsm($variables, 'twitter_tweet_preprocess_field');
-  }
-}
-// */
+function theme_twitter_tweet_formatter($vars) {
+  $output = str_replace($vars['find'], $vars['replace'], $vars['tweet']);
 
-// @todo replace this with a propper field formatter.
-function theme_field__field_tweet_original($elements) {
-  if ($node = $elements['element']['#object']) {
-    if ($node->type == 'tweet') {
-      // Get original tweet, to be themed.
-      foreach($node->field_tweet_original as $original_tweet) {
-        $tweet = $original_tweet[0]['safe_value']; 
-      }
-      // Replace Twitter mentions and hashtags with hyperlinks.
-      if ($twitter_terms = twitter_tweet_get_terms($node->field_twitter_tags)) {
-        $items = _twitter_tweet_prepare_replace($twitter_terms);
-        $tweet = str_replace($items['find'], $items['replace'], $tweet);
-      } 
-
-      return $tweet;
-    }
-  } 
+  return $output;
 }
 
 /**
@@ -61,8 +83,11 @@ function twitter_tweet_get_terms($terms_field) {
    foreach ($terms as $term) {
      if (isset($term['taxonomy_term'])) {
        $taxonomy_term = $term['taxonomy_term'];
-       $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  
+     } 
+     else {
+       $taxonomy_term = taxonomy_term_load($term['tid']);
      }
+     $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  
    }
   }
   if (empty($taxonomy_terms)) {
@@ -87,7 +112,7 @@ function twitter_tweet_get_terms($terms_field) {
 function _twitter_tweet_prepare_replace($terms) {
   $items = array();
   foreach ($terms as $term) {
-    // @todo Figure out why mentions don't have $uri->tid.
+    // @todo Figure out why sometimes term objects don't have $term->uri.
     if (!property_exists($term, 'uri')) {
       $term->uri['path'] = "taxonomy/term/$term->tid";  
     }

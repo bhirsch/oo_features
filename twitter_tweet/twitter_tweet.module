@@ -200,7 +200,6 @@ function twitter_tweet_save_tags($tags) {
         $term->path['alias'] = $alias;
         //$term->path['alias'] = _twitter_tweet_term_alias($term);
         $term->path['language'] = 'und'; // @todo Make this dynamic.
-dsm($term->path, 'path');
         taxonomy_term_save($term);
       }
     }
@@ -216,7 +215,6 @@ dsm($term->path, 'path');
       taxonomy_term_save($term); // We need the tid before we can set the alias.
       $term->path['alias'] = _twitter_tweet_term_alias($term);
       $term->path['language'] = 'und'; // @todo Make this dynamic.
-dsm($term->path, 'path');
       taxonomy_term_save($term);
     }
     $value[] = (array)$term;

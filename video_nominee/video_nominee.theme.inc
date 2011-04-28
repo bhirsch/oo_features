@@ -31,6 +31,7 @@ function video_nominee_preprocess_node(&$vars) {
       $tag_types = twitter_tweet_get_tag_types($tag['taxonomy_term']);
       if (in_array('video name', $tag_types)) {
         $path = $tag['taxonomy_term']->uri['path'];
+        $path = $tag['taxonomy_term']->uri['path'];
         $vars['video_name_url'] = drupal_get_path_alias($path);
       }
     }

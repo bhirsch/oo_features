@@ -23,6 +23,7 @@ function twitter_tweet_field_formatter_view($obj_type, $object, $field,
                                            $instance, $langcode, $items, 
                                            $display) { 
   $node = $object; 
+//dsm($node);
 
   $elements = array();
   foreach ($items as $delta => $item) {
@@ -118,7 +119,9 @@ function twitter_tweet_get_terms($terms_field) {
      else {
        $taxonomy_term = taxonomy_term_load($term['tid']);
      }
-     $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  
+     if (!empty($taxonomy_term)) {
+       $taxonomy_terms[$taxonomy_term->name] = $taxonomy_term;  
+     }
    }
   }
   if (empty($taxonomy_terms)) {

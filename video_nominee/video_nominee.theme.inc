@@ -21,17 +21,27 @@ function video_nominee_theme($existing, $type, $theme, $path) {
  * Implements hook_preprocess_node().
  */
 function video_nominee_preprocess_node(&$vars) {
-  if (!isset($vars['content']['field_twitter_tags'])) {
-   return FALSE;
-  } else {
-//    dsm($vars);
+  if (!empty($vars['nid']) && $vars['type'] == 'video_nominee') {
+    $nid = $vars['nid'];
     // Find the Twitter Tag that is the video nominee's name.
+    // Load Twitter Tags. 
+    // Note: These are automatically loaded if links are 
+    // included in display mode. But if they are turned off, they disappear.
+    // Better to query this here to allow the flexibility.
+    $results = db_query("SELECT field_twitter_tags_tid as tid "
+                      . "FROM {field_data_field_twitter_tags} "
+                      . "WHERE entity_id = :nid ", array(':nid' => $nid));
+    $results = $results->fetchAllAssoc('tid');
     $tag_types = array();
-    foreach ($vars['field_twitter_tags'] as $tag) {
-      $tag_types = twitter_tweet_get_tag_types($tag['taxonomy_term']);
+
+// SECOND MONGODB VIDEO IS RE-SAVING TITLE AS 'HASHTAG' BECAUSE IT'S AN INVALID VIDEO NAME. HANDLE THAT.
+// THIS SHOULD PROBABLY JUST LOOK FOR TERMS WITH SAME NAME AS TITLE. LESS FRAGILE THAT WAY.
+
+    foreach ($results as $row) {
+      $tag = taxonomy_term_load($row->tid);
+      $tag_types = twitter_tweet_get_tag_types($tag);
       if (in_array('video name', $tag_types)) {
-        $path = $tag['taxonomy_term']->uri['path'];
-        $path = $tag['taxonomy_term']->uri['path'];
+        $path = "taxonomy/term/$tag->tid";
         $vars['video_name_url'] = drupal_get_path_alias($path);
       }
     }

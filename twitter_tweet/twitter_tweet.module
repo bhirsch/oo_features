@@ -122,12 +122,13 @@ function twitter_tweet_replace_punctuation($original_tweet) {
     $chars['replace'] = ' ';
   }
   $tweet = str_replace($chars['find'], $chars['replace'], $original_tweet);
+  // Check for rogue @ or # symbols standing alone.
+  $tweet = str_replace(' # ', ' ', $tweet);
+  $tweet = str_replace(' @ ', ' ', $tweet);
   // Get rid of empty white space and double spaces, otherwise
   // explode() won't work correctly.
   $tweet = trim($tweet);
   $tweet = str_replace('  ', ' ', $tweet);
-
-  // @todo Check for rogue @ or # symbols standing alone.
 
   return $tweet;
 }
@@ -196,9 +197,7 @@ function twitter_tweet_save_tags($tags) {
       // Check Twitter tag types and path alias.
       if ($term->field_twitter_tag_types['und'] != $types || empty($term->path['alias'])) {
         $term->field_twitter_tag_types = array('und' => $types);
-        $alias = _twitter_tweet_term_alias($term);
-        $term->path['alias'] = $alias;
-        //$term->path['alias'] = _twitter_tweet_term_alias($term);
+        $term->path['alias'] = _twitter_tweet_term_alias($term);
         $term->path['language'] = 'und'; // @todo Make this dynamic.
         taxonomy_term_save($term);
       }

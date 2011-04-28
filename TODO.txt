@@ -1,3 +1,7 @@
+Documentation
+-------------
+- hooks in twitter_tweet
+
 Rules
 ------
 - Twitter tags (hashtags and mentions) that meet some criteria get assigned a user-defined tag type (e.g. 'video-name' and 'video-nominee')
@@ -15,8 +19,19 @@ Path Auto
 
 Content Types
 -------------
-Tweet nomination or Video Nominee should contain a node reference to the other.
+- Tweet nomination or Video Nominee should contain a node reference to the other.
 
 Field Widgets
 --------------
 - tweet widget: apply tweet processing from hook_node_presave() to user-defined text field (not just original tweet field)
+
+Queries
+-------
+Replace db_query() with PDO style queries.
+
+
+PLATFORM
+
+Video Tweet Module
+-------------------
+- Add video_url field to tweet. Automatically detect video url inside tweet, then add URL to video_url:video_filter field

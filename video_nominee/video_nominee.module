@@ -198,13 +198,37 @@ function video_nominee_twitter_tweet_tags_alter($node, $tags) {
     _video_nominee_create_node($nomination_info, $tags, $author);
   } 
   else {
+    switch ($nomination_info['error code']) {
+      case 100: // Tweet is not a nomination.   
+        // TODO Don't trample video categories.
+        // TODO Enable people to nominate existing nominees for new video categories.
+      break;
+
+      case 102: // Invalid URL.
+      break;
+      case 103: // No URL found in tweet.
+      break;
+
+      case 104: // Video name doesn't begin with #.
+      break;
+      case 105: // No dashes or spaces allowed in name.
+      break;
+      case 106: // Name already exists.
+        // Dont trample existing video names. Re-save existing term.
+        $tag = $nomination_info['name tag'];
+        $tag_types = twitter_tweet_get_tag_types($tag);
+        $video_name = $nomination_info['video name'];
+        foreach ($tag_types as $type) {
+          $tags[$video_name][] = $type;
+        }
+        $tags[$video_name] = array_unique($tags[$video_name]);
+      break;
+    }
+    $txt = t('Please contact and administrator about the tweet: !tweet. ', 
+             array('!tweet' => $nomination_info['original tweet']));
+    $txt .= $nomination_info['error message'];
+    drupal_set_message($txt, 'warning');
     // @todo Process hashtags that are not new nominations.
-    // 
-    //   For any tweet that mentions @onlineoscars, idendify and assign types: 
-    //   - video name
-    //   - category
-    //   
-    //   Enable people to nominate existing nominees for new video categories.
   }
 
   return $tags;  
@@ -302,8 +326,14 @@ function _video_nominee_validate_url($url) {
  * @param $video_name
  *  Proposed name for video nominee.
  *
- * @return
- *  boolean
+ * @return $name_info 
+ *  Array. $name_info = array(
+ *    'valid' => TRUE,
+ * 
+ *    'valid' => FALSE,
+ *    'error code' => 1xx,
+ *    'name tag' => $term, // A tag by this name already exists, return it's term object
+ *  );
  * 
  * @todo Add a similar validation check in case nodes are manually added and saved.
  */
@@ -311,10 +341,14 @@ function _video_nominee_validate_name($video_name) {
   $is_valid = TRUE;
   // Check for # symbol. (required)
   if (substr($video_name, 0, 1) != '#') {
-    $is_valid = FALSE;  
+    $name_info['error code'] = 104;
+    $name_info['error message'] = t('Video names must begin with #.');
+    $is_valid = FALSE;
   }
   // Check for dashes and spaces. (invalid)
   if (strpos($video_name, '-') || strpos($video_name, ' ')) {
+    $name_info['error code'] = 105;
+    $name_info['error message'] = t('No dashes or spaces allowed in name.');
     $is_valid = FALSE;
   }
   // Make sure name is unique.
@@ -329,17 +363,27 @@ function _video_nominee_validate_name($video_name) {
         ->execute()
         ->fetchAssoc();
     // */
-    $node = db_query("SELECT title FROM {node} "
+    $results = db_query("SELECT title FROM {node} "
               ."WHERE title = :title "
               ."AND type = :type ",
-              array(':title' => $video_name, ':type' => 'video_nominee'))->fetch();
-    if ($node->title) {
+              array(':title' => $video_name, ':type' => 'video_nominee'))->fetchAllAssoc('title');
+    if (is_array($results) && !empty($results)) {
       // Name already exists. @todo notify sender of error.
+      $terms = taxonomy_get_term_by_name($video_name);  
+      // Terms are treturned like this: 663 => stdClass where 663 is a term id.
+      foreach ($terms as $term) {
+        $tag = $term; // There should only be one of these. 
+      }
+      $name_info['error code'] = 106;
+      $name_info['error message'] = t('Video name already exists.');
+      $name_info['video name'] = $video_name;
+      $name_info['name tag'] = $tag;
       $is_valid = FALSE;
     }
   }
+  $name_info['valid'] = $is_valid;
 
-  return $is_valid; 
+  return $name_info;
 }
 
 /**
@@ -420,7 +464,9 @@ function _video_nominee_tag_types($original_tweet, $tags, $video_name = NULL) {
  *      'original tweet' => $original_tweet,
  *      'video name' => '#video_name', 
  *      'url' => 'http://example.com/something', // final destination 
- *      'valid' => TRUE,
+ *      'valid' => TRUE / FALSE,
+ *      'error message' => TRUE / FALSE,
+ *      'error code' => 123,
  *    );
  */
 function _video_nominee_nomination_info($original_tweet) {
@@ -441,6 +487,7 @@ function _video_nominee_nomination_info($original_tweet) {
   else {
     // @todo Report validation errors to user via Twitter when validation fails.
     $nomination_info['error message'] = t('Not a video nomination. Nominations begin with !nomination', array('!nomination' => '"@onlineoscars nomination"'));
+    $nomination_info['error code'] = '100';
     return $nomination_info;
   }
 
@@ -448,30 +495,47 @@ function _video_nominee_nomination_info($original_tweet) {
   if ($is_nomination) {
     $parts = explode(' ', $tweet);
     // Validate name. Verify video name is not taken.
-    if ($is_valid = _video_nominee_validate_name($parts[2])) {
+    $name_info = _video_nominee_validate_name($parts[2]);
+    if ($name_info['valid']) {
       $nomination_info['video name'] = $parts[2];
     }
     else {
       // @todo Report validation errors to user via Twitter when validation fails.
-      $nomination_info['error message'] = t('Not a valid video name.');
+      $nomination_info['error message'] = $name_info['error message'];
+      $nomination_info['error code'] = $name_info['error code'];
+      $nomination_info['name tag'] = $name_info['name tag'];
+      $nomination_info['video name'] = $name_info['video name'];
       return $nomination_info;
     }
     // Validate video url. Verify $url is a valid URL.
     // Use original case from original tweet. YouTube and bit.ly have case sensitive URLs.
     $parts = explode(' ', $original_tweet);
-    if ($url_info = _video_nominee_validate_url($parts[3])) {
+    // Find the first URL in in the tweet. 
+    // URL should be $part[3], but it might not be if someone miss typed.
+    $i = 0;
+    $found_url = FALSE;
+    do {
+      if (substr($parts[$i], 0, 7) == 'http://') {
+        $url_info = _video_nominee_validate_url($parts[$i]);
+        $found_url = TRUE;
+      }  
+      $i++;
+    } while ($found_url == FALSE && $i < count($parts)); 
+    if ($url_info) {
       if ($url_info['valid']) {
         $nomination_info['url'] = $url_info['destination'];
       }
       else {
         // @todo Report validation errors to user via Twitter when validation fails.
         $nomination_info['error message'] = $url_info['error message'];
+        $nomination_info['error code'] = '102';
         return $nomination_info;
       }
     } 
     else { // Invalid URL.
       // @todo Report validation errors to user via Twitter when validation fails.
-      $nomination_info['error message'] = t('Not a valid URL.');
+      $nomination_info['error message'] = t('No URL found in tweet.');
+      $nomination_info['error code'] = '103';
       return $nomination_info;
     }
     // Verify no other videos at this URL have been nominated yet.

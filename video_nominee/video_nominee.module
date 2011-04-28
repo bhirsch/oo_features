@@ -5,6 +5,130 @@
  */
 
 include_once('video_nominee.features.inc');
+include_once('video_nominee.theme.inc');
+
+/**
+ * Implements hook_page_build().
+ * 
+ * @todo Seems like it would better to modify output with 
+ *  hook_taxonomy_term_view_alter() and maybe hook_preprocess_taxonomy_term()
+ *  rather than hook_page_build() and hook_page_alter() 
+ *  but these hooks aren't firing for some reason.
+ */
+function video_nominee_page_build(&$build) {
+  if (arg(0) == 'taxonomy' && arg(1) == 'term' && arg(3) != 'edit') {
+dsm($build, 'build');  
+    // Find out what type of term this is.  
+    $tid = arg(2);
+    // @todo This should be a context. 
+    //   For now store context in path alias.
+// TODO TRY CONTEXT->PATH BEFORE IMPLEMENTING THIS HACK.
+dsm(drupal_get_path_alias(), 'alias');
+    if ($tag_types = twitter_tweet_get_tag_types($tid)) {
+      //dsm($tag_types, 'tag_types');
+      // @todo We should have tighter control around Twitter Tag Types.
+      //  It should be impossible for a Twitter Tag to be tagged with type
+      //  'video name' AND 'video category'. It's either a video name OR a video
+      //  category. Similarly, it's either a hashtag OR a mention.
+      if (in_array('video name', $tag_types)) {
+        
+      } 
+      else if (in_array('video category', $tag_types)) {
+        
+      }
+    }
+  }
+}
+// */
+
+/**
+ * Implements hook_form_alter().
+ */
+/*
+function video_nominee_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'taxonomy_form_term') {
+    //dsm($form_id, 'form_id');
+    //dsm($form, 'form');
+    $form['#validate'][] = 'video_nominee_form_test';
+  }
+}
+// */
+
+/*
+function video_nominee_form_test(&$form, &$form_state) {
+  dsm($form_state,'form_state validating');  
+}
+// */
+
+/**
+ * Implements hook_page_alter().
+ */
+/*
+function video_nominee_page_alter(&$page) {
+  //dsm($page, 'page');  
+}
+// */
+
+/**
+ * Implements hook_preprocess_taxonomy_term().
+ *
+ * @todo Figure out why this function isn't being called.
+ */
+/*
+function video_nominee_preprocess_taxonomy_term(&$variables) {
+  dsm($variables, 'variables');  
+}
+// */
+
+/**
+ * Implements hook_taxonomy_term_view_alter(&$build).
+ * 
+ * @todo Figure out why this function isn't being called.
+ */
+/*
+function video_nominee_taxonomy_term_view_alter(&$build) {
+  dsm($build, 'build');  
+}
+// */
+
+/**
+ * Implements hook_taxonomy_term_presave(). 
+ * 
+ * Add context via path alias.
+ */
+function video_nominee_taxonomy_term_presave($term) {
+  if ($term->vocabulary_machine_name == 'twitter_tags') {
+    if (empty($term->tid)) {
+      $types = array();
+      foreach ($term->field_twitter_tag_types as $tag_types) {
+        foreach ($tag_types as $tag_type) {
+          $types[] = $tag_type['name'];
+        }
+      }
+    } else {
+      $types = twitter_tweet_get_tag_types($term); 
+    }
+    // Validation.
+    if (in_array('video name', $types) && in_array('video category', $types)) {
+      // @todo This should never happen. Throw error.  
+    } else if (in_array('video name', $types)) {
+      $type = 'video name';   
+    } else if (in_array('video category', $types)) {
+      $type = 'video category';   
+    }
+    // All video names and video categories are Twitter hashtags, beginning with #.
+    $name = $term->name;
+    switch ($type) {
+      case 'video name':
+        $term->path['alias'] = t('video-name') . '/' . substr($name, 1);  
+        break;
+
+      case 'video category': 
+        $term->path['alias'] = t('video-category') . '/' . substr($name, 1);  
+        break;
+    }
+  }
+}
 
 /**
  * Implements hook_node_validate().
@@ -365,3 +489,4 @@ function _video_nominee_get_tags($tags) {
 
   return $nominee_tags;
 }
+

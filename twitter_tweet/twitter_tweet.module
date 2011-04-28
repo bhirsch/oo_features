@@ -255,17 +255,26 @@ function twitter_tweet_save_tag_types($tag_types) {
  * Standard types include "hashtag" and "mention". Other modules
  * can add their own Twitter tag types.
  * 
- * @param
+ * @param $param
  *  Integer, term id of a Twitter tag.
+ *   Or
+ *  Object, Twitter Tag term object.
  * 
  * @return
  *  Array $tag_types = array( tid => 'tag type name' );
  */
-function twitter_tweet_get_tag_types($tid) {
+function twitter_tweet_get_tag_types($param) {
   $tag_types = array();
   $tids = array();
 
-  $tag = taxonomy_term_load($tid);
+  if (is_object($param)) {
+    $tag = $param;  
+  }
+  else if (is_numeric($param)) {
+    $tid = $param;   
+    $tag = taxonomy_term_load($tid);
+  }
+
   if (property_exists($tag, 'field_twitter_tag_types') 
   && isset($tag->field_twitter_tag_types)) {
     foreach ($tag->field_twitter_tag_types as $types) {
@@ -288,7 +297,7 @@ function twitter_tweet_get_tag_types($tid) {
 /**
  * Implements hook_taxonomy_term_presave(). 
  * 
- * Generate path alias for new terms. 
+ * Generate path alias for terms. 
  *
  * @todo Add admin option to disable auto-creation of term path.
  */

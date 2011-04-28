@@ -17,13 +17,13 @@ include_once('video_nominee.theme.inc');
  */
 function video_nominee_page_build(&$build) {
   if (arg(0) == 'taxonomy' && arg(1) == 'term' && arg(3) != 'edit') {
-dsm($build, 'build');  
+//dsm($build, 'build');  
     // Find out what type of term this is.  
     $tid = arg(2);
     // @todo This should be a context. 
     //   For now store context in path alias.
 // TODO TRY CONTEXT->PATH BEFORE IMPLEMENTING THIS HACK.
-dsm(drupal_get_path_alias(), 'alias');
+//dsm(drupal_get_path_alias(), 'alias');
     if ($tag_types = twitter_tweet_get_tag_types($tid)) {
       //dsm($tag_types, 'tag_types');
       // @todo We should have tighter control around Twitter Tag Types.
@@ -52,9 +52,6 @@ function video_nominee_form_alter(&$form, &$form_state, $form_id) {
     $form['#validate'][] = 'video_nominee_form_test';
   }
 }
-// */
-
-/*
 function video_nominee_form_test(&$form, &$form_state) {
   dsm($form_state,'form_state validating');  
 }
@@ -91,11 +88,28 @@ function video_nominee_taxonomy_term_view_alter(&$build) {
 }
 // */
 
+function video_nominee_twitter_tweet_twitter_tag_alias_alter($term, $alias) {
+  if (empty($term->tid)) {
+    drupal_set_message("Tid is empty. This shouldn't happen. Please contact administrator.", 'error');
+  } else {
+    $types = twitter_tweet_get_tag_types($term); 
+  }
+  if (in_array('video name', $types)) {
+    $type = 'video name';   
+    return "video-name/$term->tid";
+  } else if (in_array('video category', $types)) {
+    $type = 'video category';   
+    return "video-category/$term->tid";
+  } else {
+    return $alias;
+  }
+}
 /**
  * Implements hook_taxonomy_term_presave(). 
  * 
  * Add context via path alias.
  */
+ /*
 function video_nominee_taxonomy_term_presave($term) {
   if ($term->vocabulary_machine_name == 'twitter_tags') {
     if (empty($term->tid)) {
@@ -120,15 +134,20 @@ function video_nominee_taxonomy_term_presave($term) {
     $name = $term->name;
     switch ($type) {
       case 'video name':
-        $term->path['alias'] = t('video-name') . '/' . substr($name, 1);  
+        $term->path['alias'] = t('video') . '/' . substr($name, 1);  
+        //$term->path['alias'] = t('video-name') . '/' . substr($name, 1);  
+        //$term->path['alias'] = t('video-name') . '/' . $name;  
         break;
 
       case 'video category': 
         $term->path['alias'] = t('video-category') . '/' . substr($name, 1);  
+        //$term->path['alias'] = t('video-category') . '/' . substr($name, 1);  
+        //$term->path['alias'] = t('video-category') . '/' . $name;  
         break;
     }
   }
 }
+// */
 
 /**
  * Implements hook_node_validate().

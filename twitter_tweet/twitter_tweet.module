@@ -7,6 +7,7 @@
 include_once('twitter_tweet.features.inc');
 include_once('twitter_tweet.theme.inc');
 
+
 /**
  * Implements hook_node_validate().
  *
@@ -46,7 +47,10 @@ function twitter_tweet_node_presave($node) {
     // Pull tags out of tweet in a comma separated list.
     $tags = twitter_tweet_get_tags($original_tweet);
     // Give other modules a chance to alter $tags.
-    $tags = module_invoke_all('twitter_tweet_tags_alter', $node, $tags);
+    foreach(module_implements('twitter_tweet_tags_alter') as $module) {
+      $tags = module_invoke($module, 'twitter_tweet_tags_alter', $node, $tags);
+    }
+    //$tags = module_invoke_all('twitter_tweet_tags_alter', $node, $tags);
     // Now perpare terms as taxonomy terms.
     if (!empty($tags)) {
       $tags = twitter_tweet_save_tags($tags);
@@ -118,6 +122,10 @@ function twitter_tweet_replace_punctuation($original_tweet) {
     $chars['replace'] = ' ';
   }
   $tweet = str_replace($chars['find'], $chars['replace'], $original_tweet);
+  // Get rid of empty white space and double spaces, otherwise
+  // explode() won't work correctly.
+  $tweet = trim($tweet);
+  $tweet = str_replace('  ', ' ', $tweet);
 
   // @todo Check for rogue @ or # symbols standing alone.
 
@@ -185,9 +193,14 @@ function twitter_tweet_save_tags($tags) {
     // otherwise, create a new term for insert/update.
     if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($tag_name), 'vid' => array_keys($vocabularies)))) {
       $term = array_pop($possibilities);
-      // Check Twitter tag types.
-      if ($term->field_twitter_tag_types['und'] != $types) {
+      // Check Twitter tag types and path alias.
+      if ($term->field_twitter_tag_types['und'] != $types || empty($term->path['alias'])) {
         $term->field_twitter_tag_types = array('und' => $types);
+        $alias = _twitter_tweet_term_alias($term);
+        $term->path['alias'] = $alias;
+        //$term->path['alias'] = _twitter_tweet_term_alias($term);
+        $term->path['language'] = 'und'; // @todo Make this dynamic.
+dsm($term->path, 'path');
         taxonomy_term_save($term);
       }
     }
@@ -200,6 +213,10 @@ function twitter_tweet_save_tags($tags) {
       );
       $term = (object) $term;
       $term->field_twitter_tag_types = array('und' => $types);
+      taxonomy_term_save($term); // We need the tid before we can set the alias.
+      $term->path['alias'] = _twitter_tweet_term_alias($term);
+      $term->path['language'] = 'und'; // @todo Make this dynamic.
+dsm($term->path, 'path');
       taxonomy_term_save($term);
     }
     $value[] = (array)$term;
@@ -301,6 +318,8 @@ function twitter_tweet_get_tag_types($param) {
  *
  * @todo Add admin option to disable auto-creation of term path.
  */
+/*
+// TODO TEST REPLACING WITH NODE_PRESAVE
 function twitter_tweet_taxonomy_term_presave($term) {
   if ($term->vocabulary_machine_name == 'twitter_tags') {
     if ($alias = _twitter_tweet_term_alias($term)) {
@@ -313,12 +332,25 @@ function twitter_tweet_taxonomy_term_presave($term) {
 }
 
 /**
+ * Implements hook_preprocess_taxonomy_term().
+ *
+ * @todo Figure out why this function isn't being called.
+ */
+/*
+function twitter_tweet_preprocess_taxonomy_term(&$variables) {
+  dsm($variables, 'variables');
+}
+// */
+
+/**
  * @param $term
  *  Taxonomy term object.
  * 
  * @return 
  *  String for alias to be used in $term->path['alias'].
  */
+/*
+// TODO ORIGINAL. REPLACE WITH COPY IF CALLING ON HOOK_NODE_PRESAVE.
 function _twitter_tweet_term_alias($term) {
   $alias = '';
 
@@ -333,6 +365,39 @@ function _twitter_tweet_term_alias($term) {
   }
   else {
     return FALSE;  
+  }
+
+  return $alias;
+}
+
+/**
+ * @param $term
+ *  Taxonomy term object.
+ * 
+ * @return 
+ *  String for alias to be used in $term->path['alias'].
+ *
+ * @todo Note: It seems like it might be cleaner to handle this with theming, 
+ *  by changing the term url, but taxonomy system's preprocess functions and 
+ *  theme overrides aren't firing for some reason. 
+ */
+function _twitter_tweet_term_alias($term) {
+  $alias = '';
+
+  if (substr($term->name, 0, 1) == '#') {
+    $alias = t('hashtag') . '/' . $term->tid;
+  }
+  else if (substr($term->name, 0, 1) == '@') {
+    $alias = t('mention') . '/' . $term->tid;
+  }
+  else {
+    return FALSE;  
+  }
+
+  // Give modules an opportunity to modify the path alias.
+  // TODO add error handling incase nobody implements hooks.
+  if ($aliases = module_invoke_all('twitter_tweet_twitter_tag_alias_alter', $term, $alias)) {
+    $alias = $aliases[0]; 
   }
 
   return $alias;

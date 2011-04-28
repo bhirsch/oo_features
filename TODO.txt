@@ -1,13 +1,17 @@
-Path Auto
---------
-- Assign twitter tag path according to tag type(?) Or is this a Rules project?
-
 Rules
 ------
 - Twitter tags (hashtags and mentions) that meet some criteria get assigned a user-defined tag type (e.g. 'video-name' and 'video-nominee')
+    Is rules interface too complicated? Maybe just a drag-and-drop, admin screen where
+    tags get assigned paths and use drag-and-drop to prioritize, e.g. video-name > hashtag.
 - Tweet creation triggers node creation (e.g. create Video Nominee node)
-  -> tokens to be made available for action: URLs, hashtags, mentions, original tweet
-  -> map tokens to fields
+    -> tokens to be made available for action: URLs, hashtags, mentions, original tweet
+    -> map tokens to fields
+- Assign Twitter tags path alias according to tag type (could this be handled 
+  by hooking into PathAuto somehow?)
+
+Path Auto
+--------
+- Assign twitter tag path according to tag type(?) Or is this a Rules project?
 
 Content Types
 -------------
@@ -16,4 +20,3 @@ Tweet nomination or Video Nominee should contain a node reference to the other.
 Field Widgets
 --------------
 - tweet widget: apply tweet processing from hook_node_presave() to user-defined text field (not just original tweet field)
-

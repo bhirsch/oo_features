@@ -24,7 +24,7 @@ function video_nominee_preprocess_node(&$vars) {
   if (!isset($vars['content']['field_twitter_tags'])) {
    return FALSE;
   } else {
-    dsm($vars);
+//    dsm($vars);
     // Find the Twitter Tag that is the video nominee's name.
     $tag_types = array();
     foreach ($vars['field_twitter_tags'] as $tag) {

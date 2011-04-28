@@ -55,8 +55,32 @@ function twitter_tweet_theme($existing, $type, $theme, $path) {
     'twitter_tweet_formatter' => array(
       'variables' => array('tweet' => NULL, 'find' => array(), 'replace' => array()),
     ),
+    /*
+    // @todo Figure out why this isn't working.
+    'taxonomy_term__twitter_tags' => array(
+      'render element' => 'elements',
+      'template' => 'taxonomy-term--twitter-tags.tpl.php',
+      //'override preprocess functions' => TRUE,
+      //'preprocess functions' => 'twitter_tweet_test',
+    ),
+    // */
   );
 }
+/*
+// @todo Figure out why none of these functions are being called.
+function template_preprocess_taxonomy_term__twitter_tags($elements) {
+  dsm($elements, 'elements');  
+}
+function video_nominee_preprocess_taxonomy_term__twitter_tags($elements) {
+  dsm($elements, 'elements');  
+}
+function twitter_tweet_test($elements) {
+ dsm('test preprocess works');  
+}
+function twitter_tweet_theme_registry_alter(&$theme_registry) {
+  dsm($theme_registry, 'theme_registry');  
+}
+// */
 
 /**
  * Returns HTML for tweet.

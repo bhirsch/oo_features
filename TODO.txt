@@ -1,22 +1,19 @@
+Path Auto
+--------
+- Assign twitter tag path according to tag type(?) Or is this a Rules project?
+
+Rules
+------
+- Twitter tags (hashtags and mentions) that meet some criteria get assigned a user-defined tag type (e.g. 'video-name' and 'video-nominee')
+- Tweet creation triggers node creation (e.g. create Video Nominee node)
+  -> tokens to be made available for action: URLs, hashtags, mentions, original tweet
+  -> map tokens to fields
+
 Content Types
 -------------
 Tweet nomination or Video Nominee should contain a node reference to the other.
 
-Tweet Formatting
-----------------
-Make url links into hyperlinks(?)
-
-Field Displays
----------------
-- video_filter field display for text fields.
-- processed tweet field display for tweet field.
-
 Field Widgets
 --------------
 - tweet widget: apply tweet processing from hook_node_presave() to user-defined text field (not just original tweet field)
-- render array field, to make form for render array input.
 
-Twitter Tags
--------------
-- Views Tag Types (module): Build a view. Twitter tags that meet 
-  criteria in designated view get assigned user-defined tag type.

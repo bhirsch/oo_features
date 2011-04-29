@@ -17,14 +17,6 @@ function twitter_tweet_taxonomy_default_vocabularies() {
       'module' => 'taxonomy',
       'weight' => '-9',
     ),
-    'twitter_tag_types' => array(
-      'name' => 'Twitter Tag Types',
-      'machine_name' => 'twitter_tag_types',
-      'description' => 'hashtag, mention, and other user-defined types of tags',
-      'hierarchy' => '0',
-      'module' => 'taxonomy',
-      'weight' => '-6',
-    ),
     'twitter_tags' => array(
       'name' => 'Twitter Tags',
       'machine_name' => 'twitter_tags',

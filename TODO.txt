@@ -1,3 +1,20 @@
+7.x-1.x
+--------
+Twitter Tweet module: 
+- Tweet content type
+- Twitter Tags vocab and field
+- Original Tweet field
+- Tweet field display 
+
+Tweet Video module: 
+- Add video_url field to tweet content type
+- Identify video URLs in Tweets and populate video field
+- Provide hook for other modules to validate video URL before it's saved
+
+Video Nominee module:
+- Add video category taxonomy vocab and field
+- Add video name taxonomy vocab and field
+
 Documentation
 -------------
 - hooks in twitter_tweet

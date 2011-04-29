@@ -2,6 +2,8 @@ Documentation
 -------------
 - hooks in twitter_tweet
 
+Make _alter hooks proper drupal_alter() functions.
+
 Rules
 ------
 - Twitter tags (hashtags and mentions) that meet some criteria get assigned a user-defined tag type (e.g. 'video-name' and 'video-nominee')

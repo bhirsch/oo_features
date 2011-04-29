@@ -8,6 +8,15 @@ include_once('video_nominee.features.inc');
 include_once('video_nominee.theme.inc');
 
 /**
+ * Implements hook_menu_alter().
+ */
+// TODO Why isnt this working?!?!?!?!?!
+function video_nominee_menu_alter(&$items) {
+  dsm($items);  
+  dsm('testing 1 2 3');
+}
+
+/**
  * Implements hook_page_build().
  * 
  * @todo Seems like it would better to modify output with 
@@ -200,8 +209,6 @@ function video_nominee_twitter_tweet_tags_alter($node, $tags) {
   else {
     switch ($nomination_info['error code']) {
       case 100: // Tweet is not a nomination.   
-        // TODO Don't trample video categories.
-        // TODO Enable people to nominate existing nominees for new video categories.
       break;
 
       case 102: // Invalid URL.
@@ -476,6 +483,10 @@ function _video_nominee_nomination_info($original_tweet) {
   //   @onlineoscars nomination: #video_name http://something.com/video/url. 
   //   categories #one #two #etc.
   $tweet = strtolower($original_tweet);
+  // TODO
+  // CONTINUE HERE MAKE TWEETS MORE HUMAN READABLE.
+  // LIKE "nominate: #battle_at_kruger @onlineoscard, http://something. 
+  // categories: #one #two #three."
   if (substr($tweet, 0, 24) == '@onlineoscars nomination') {
     $is_nomination = TRUE; 
   } 

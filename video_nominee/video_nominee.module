@@ -10,11 +10,11 @@ include_once('video_nominee.theme.inc');
 /**
  * Implements hook_menu_alter().
  */
-// TODO Why isnt this working?!?!?!?!?!
+/*
 function video_nominee_menu_alter(&$items) {
-  dsm($items);  
-  dsm('testing 1 2 3');
+  dsm($items, 'menu items from hook_menu_alter');  
 }
+// */
 
 /**
  * Implements hook_page_build().
@@ -82,7 +82,7 @@ function video_nominee_page_alter(&$page) {
  */
 /*
 function video_nominee_preprocess_taxonomy_term(&$variables) {
-  dsm($variables, 'variables');  
+  dsm($variables, 'variables from video_nominee_preprocess_taxonomy_term');  
 }
 // */
 
@@ -93,7 +93,7 @@ function video_nominee_preprocess_taxonomy_term(&$variables) {
  */
 /*
 function video_nominee_taxonomy_term_view_alter(&$build) {
-  dsm($build, 'build');  
+  dsm($build, 'build video_nominee_taxonomy_term_view_alter');  
 }
 // */
 

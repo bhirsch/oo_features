@@ -1,19 +1,166 @@
-7.x-1.x
---------
-Twitter Tweet module: 
-- Tweet content type
-- Twitter Tags vocab and field
-- Original Tweet field
-- Tweet field display 
+7.x-1.x 
 
-Tweet Video module: 
+1.0-alpha1 Roadmap
+-------------------
+Plaftorm Modules: 
+
+xTwitter Search Feed:
+x Twitter Search Feed content type
+x Create Tweets from search feed(s)
+
+Twitter Tweet module: 
+x Tweet content type
+x Original Tweet field
+x Tweet field display 
+x Twitter Tags vocab and field
+
+Twitter Tag Types module:
+- Twitter Tag Types vocab 
+- Twitter Tag Types field applied to Twitter Tags terms
+- twitter-tags/index/%
+--- generate index get a listing of Twitter Tags terms tagged with Twitter Tag Type %
+--- e.g.
+--- twitter-tags/index/mention
+--- twitter-tags/index/hashtag
+- Sub-module: Twitter Tag Type Rules: 
+- User-defined settings for determining a tag types: 
+--- Action: Apply X tag type to Twitter tag if Y conditions are met.
+--- Rule 1: 
+--- Apply [hashtag] tag type to Twitter tag
+--- when [tag] [begins with] [#]
+--- when [tag] [length is greater than or equal to] [2]
+--- Rule 2: 
+--- Apply [mention] tag type to Twitter tag
+--- when [tag] [begins with] [@]
+--- when [tag] [length is greater than or equal to] [2]
+--- UI for User-Defined Rules: 
+--- Apply [X] tag type to Twitter tag
+--- when [tag/tweet] [begins with/contains/length is ___] [Y]
+--- AND when [tweet/tag] [begins with/contains/length is ___] [Y]
+--- AND when [tag] [comes immediately before/after] [Y]
+--- AND when... 
+
+Video Tweet  module: 
 - Add video_url field to tweet content type
 - Identify video URLs in Tweets and populate video field
 - Provide hook for other modules to validate video URL before it's saved
+- Provide validation callbacks for: valid URL AND unique valid URL
 
-Video Nominee module:
-- Add video category taxonomy vocab and field
-- Add video name taxonomy vocab and field
+Custom Modules: 
+
+Video Nominee module 
+- [Get rid of video_nominee content type]
+- * Rule conditions to add: 
+--- [existing video name]
+--- [new video name]
+- Pages: 
+--- Do we need to implement a hook? Hopefully these just work with TTT module...
+--- twitter-tags/index/video-category
+--- twitter-tags/index/video-name
+- Implementation of Video URL validation hook: 
+--- Don't store URL if it already exists (if it's already been nominated)
+- Implementation of _____ hook
+--- Notify user that video has already been nominated
+- Rules (built on Twitter Tag Types module): 
+--- Nominees: 
+--- Apply [video-name] tag type to Twitter tag
+--- when [tag] [comes immediately before/after] ["nominate"]
+--- AND when [tweet] [begins with] [#]
+--- AND when [tweet] [contains] ["nominate"]
+--- AND when [tweet] [contains] ["@onlineoscars"]
+--- AND when [tweet] [contains] [unique video URL]
+--- Apply [video-name] tag type to Twitter tag
+--- when [tag] [equals] [existing video name]
+--- AND when [tweet] [begins with] [#]
+--- AND when [tweet] [contains] ["@onlineoscars"]
+--- Categories:
+--- Apply [video-category] tag type
+--- when [tag] [comes between] ["categories"] AND ["."]
+--- AND when [tweet] [begins with] [#]
+--- AND when [tweet] [contains] ["@onlineoscars"]
+--- AND when [tweet] [contains] [one existing video name]
+--- Apply [video-category] tag type
+--- when [tag] [comes between] ["categories"] AND ["."]
+--- AND when [tweet] [begins with] [#]
+--- AND when [tweet] [contains] ["@onlineoscars"]
+--- AND when [tweet] [contains] [new video name]
+
+On Twitter Module
+- Provide "On Twitter" block
+--- Determine tag type from arg(2) [taxonomy/term/%]
+--- switch case (type / arg(2))
+----- author
+----- video category
+----- video name
+----- hashtag
+----- mention => (return nothing)
+
+--------------------------
+--------------------------
+BACKUP PLANS
+IF TWITTER TAG TYPES DOESN'T WORK...
+(Video) Nomination Tweet module 
+- Add (video/nomination) category taxonomy vocab and field
+- Add (video/nominee) name taxonomy vocab and field
+- Rules: 
+- User-defined settings for identifying a nominee:
+--- Action: Add #nominee_name to Nominees vocab on Tweet node
+--- starts with/contains ["nominate"]
+--- AND starts with/contains ["@onlineoscars"]
+--- AND contains [valid video URL]
+--- AND contains [valid, unique video URL]
+- User-defined settings for identifying a nomination category:
+--- Action: Add #category_name to Nomination Categories vocab
+--- starts with/contains ["categories"]
+--- AND starts with/contains ["@onlineoscars"]
+--- AND contains [one existing nominee name]
+- User-defined settings for identifying a nomination category:
+--- starts with/contains ["categories"]
+--- AND starts with/contains ["@onlineoscars"]
+--- AND contains [new video name]
+--------------------------
+--------------------------
+
+1.0-alphaX Roadmap
+-------------------
+Apps
+- Video Tweet
+- Vote Tweet
+- Tweet rules
+- Nomination Tweets
+- Promotion (e.g. first 100 people get X free -> sign in with Twitter account, 
+  then prompt user to enter info which is sent to a promo administrator to 
+  follow up)
+- Slideshow Tweet
+- Video Slideshow Tweet
+- Multimedia Slideshow Tweets
+- Open Public/Civic: 
+- Event pic Tweet
+- Press Release Tweet
+- Issues Tweets
+- Legislation Tweets
+- Resources Tweet
+- Breaking News Tweet
+
+Views Twitter Term Types
+- (? seems like Views should already be type aware somehow)
+
+Vote API Integration
+- enable voting on Tweets through website
+- enable voting on Tweets through Twitter
+- visualization (Five Star? other?)
+
+Exportable Twitter Feed Settings
+- store feed URL and name of content type
+- (re-)create feed nodes on command
+
+Facebook 
+- status/video nominations etc.
+- events
+
+Context: Taxonomy Tag Type
+- Make a context for taxonomy tag type
+- E.g. on taxonomy/term/tid if it's a video category -> [action/block/etc.]
 
 Documentation
 -------------

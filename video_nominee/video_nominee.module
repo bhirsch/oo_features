@@ -213,17 +213,10 @@ function video_nominee_twitter_tweet_tags_alter($node, $tags) {
       break;
       case 105: // No dashes or spaces allowed in name.
       break;
-      case 106: // Name already exists.
-        // Dont trample existing video names. Re-save existing term.
-        $tag = $nomination_info['name tag'];
-        $tag_types = twitter_tweet_get_tag_types($tag);
-        $video_name = $nomination_info['video name'];
-        foreach ($tag_types as $type) {
-          $tags[$video_name][] = $type;
-        }
-        $tags[$video_name] = array_unique($tags[$video_name]);
+      case 106: // Video name already exists.
       break;
-    }
+    } // End switch ($nomination_info['error code']).
+    // TODO Log errors to watchdog.
     $txt = t('Please contact and administrator about the tweet: !tweet. ', 
              array('!tweet' => $nomination_info['original tweet']));
     $txt .= $nomination_info['error message'];
@@ -368,16 +361,18 @@ function _video_nominee_validate_name($video_name) {
               ."AND type = :type ",
               array(':title' => $video_name, ':type' => 'video_nominee'))->fetchAllAssoc('title');
     if (is_array($results) && !empty($results)) {
+      /*
       // Name already exists. @todo notify sender of error.
       $terms = taxonomy_get_term_by_name($video_name);  
       // Terms are treturned like this: 663 => stdClass where 663 is a term id.
       foreach ($terms as $term) {
         $tag = $term; // There should only be one of these. 
       }
-      $name_info['error code'] = 106;
-      $name_info['error message'] = t('Video name already exists.');
       $name_info['video name'] = $video_name;
       $name_info['name tag'] = $tag;
+      // */
+      $name_info['error code'] = 106;
+      $name_info['error message'] = t('Video name already exists.');
       $is_valid = FALSE;
     }
   }

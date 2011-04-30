@@ -4,3 +4,162 @@
  */
 
 // Drupal needs this blank file.
+// Code below written manually by bhirsch.
+
+/**
+ * Implements hook_node_presave().
+ *
+ * Check to see whether original tweet includes one or more media URLs
+ * (e.g. YouTube video or Flickr slideshow). If so, add the 
+ * destination URL (not the short URL) to the media URL field.
+ * 
+ * Note: This is called here rather than hook_validate() because hook validate
+ * doesn't fire when Feeds module imports nodes.
+ * 
+ * @todo If the node_save() processess becomes to expensive
+ *  during feed imports, this is a step that can easily be moved into a queue
+ *  or cron.
+ */
+function tweet_media_node_presave($node) {
+  if ($node->type == 'tweet') {
+    $original_tweet = $node->field_tweet_original['und'][0]['value'];
+    // Validate video url. Verify $url is a valid URL.
+    // Use original case from original tweet,
+    // YouTube and bit.ly have case sensitive URLs.
+    $parts = explode(' ', $original_tweet);
+    // Find URLs in in the tweet. 
+    $urls = array();
+    foreach ($parts as $part) {
+      // Find URLs.
+      if (substr($part, 0, 7) == 'http://') {
+        // TODO Validate URL.
+        $url_info = tweet_media_validate_url($part);
+        if ($url_info['valid']) {
+          // TODO Give other modules a chance to validate URL.
+          //foreach (module_implements('some_hook')) {
+          //}
+        $urls[] = $url_info;
+        }
+      }  
+    }
+
+// CONTINUE HERE
+// FIRST MEDIA URL SAVES. SECOND FAILS.
+
+    // Add valid URLs to $node media_url field.
+    foreach ($urls as $url_info) {
+      if ($url_info['valid']) {
+        // @todo Is there a better alternative to hard-coding language here? 
+        //  Is there a way to determine language for tweets? 
+        $node->field_media_url['und'][] = array(
+          'url' => $url_info['destination_url'],
+        );
+      }
+    }
+
+  } 
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ * 
+ * Hide media_url field from node form. This should be generated automatically
+ * from tweet on save.
+ */
+function tweet_media_form_tweet_node_form_alter(&$form, &$form_state) {
+  $form['field_media_url']['#access'] = FALSE; 
+}
+
+/**
+ * @param $url
+ *  string
+ * 
+ * @return $url_info
+ *  $url_info = array(
+ *    'original_url' => 'http://bit.ly/xyz',
+ *    'destination_url' => 'http://youtube.com/xyz',
+ *    'valid' => TRUE, // or FALSE
+ *    'error message' => 'explain why false if it's false',
+ *    'error code' => '123',
+ *  );
+ * 
+ * @todo Consider breaking each step into small separate functions. Maybe easier to test.
+ */
+function tweet_media_validate_url($url) {
+  $url_info = array();
+
+  // Assume URL is not valid until we prove otherwise.
+  $url_info['valid'] = FALSE;
+
+  // Strip funny stuff off the end.
+  // For example tweets might include wacky things like this:
+  // @soandso check out this video: http://bit.ly/XzYf. So cool.
+  // @soandso check out this video: http://bit.ly/XzYf, why?
+  // @soandso check out this video: http://bit.ly/XzYf... what? 
+  // @soandso check out this video: http://bit.ly/XzYf!?!? what? 
+  $valid_end = tweet_media_url_chars();
+  $url_end = substr($url, -1);
+  $end_is_valid = FALSE;
+  do {
+    if (!in_array($url_end, $valid_end)) {
+      // The last character in the URL is funny. Trim it. Then try again.
+      $url = substr($url, 0, -1);  
+      $url_end = substr($url, -1);
+    } else {
+      $end_is_valid = TRUE;
+    }
+  } while ($end_is_valid == FALSE);
+  // Now our $url should be good.
+  if ($url != 'http://') { // After trimming the funny stuff, all that's left is "http://"
+    $url_info['original_url'] = $url;
+  } else {
+    $url_info['error message'] = t('Sorry buddy. This URL is totally bogus.');
+    $url_info['error code'] = 404;
+    return $url_info;
+  }
+
+  // Get $url_info['destination_url'].
+  $destination = destination_url($url);
+  // Check HTTP code, it should be 2xx
+  // (see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html).
+  $http_code = $destination['http_code'];
+  if ($http_code >= 200 && $http_code < 300) {
+    $url_info['destination_url'] = $destination['url'];
+  } 
+  // Invalid url.
+  else {
+    $url_info['error message'] = t('Not a valid URL. HTTP code: !code',
+                                array('!code' => $http_code));
+    return $url_info;
+  }
+
+  // Test for supported codecs. (Codecs enable video_filter to turn a URL into
+  // embedded media.)
+  if ($is_supported = video_filter_field_url_is_supported($url_info['destination_url'])) {
+    $url_info['valid'] = TRUE;
+  }
+  else {
+    $url_info['error message'] = t('Invalid URL. No available codec for !url. '
+                                 . "Either it's not a proper URL for embedded media "
+                                 . 'or this web service is not supported at this time.', 
+                                 array('!url' => $url_info['destination_url']));
+    $url_info['error code'] = '406';
+  }
+
+  return $url_info;
+}
+
+/**
+ * @return
+ *  Array of characters that legitimately end valid URLs.
+ */
+function tweet_media_url_chars() {
+  return array(
+    'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
+    'r','s','t','u','v','w','x','y','z',
+    '1', '2','3','4','5','6','7','8','9','0',
+    "/",
+  ); 
+}
+
+

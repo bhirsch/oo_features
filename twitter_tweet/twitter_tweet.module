@@ -33,7 +33,6 @@ include_once('theme/twitter_tweet.theme.inc');
 function twitter_tweet_node_presave($node) {
   if ($node->type == 'tweet') {
     $original_tweet = $node->field_tweet_original['und'][0]['value'];
-
     // Add taxonomy terms to Twitter Tags vocabulary.
     // Pull tags out of tweet.
     $tags = twitter_tweet_get_tags($original_tweet);

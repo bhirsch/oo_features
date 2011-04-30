@@ -1,0 +1,16 @@
+<?php
+/**
+ * @file ttt.module
+ *  Set Twitter Tag Type module weight to 1 so it runs after Twitter Tweet 
+ *  module, otherwise hook_node_presave() won't be able to do it's magic.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function ttt_install() {
+  db_update('system')
+    ->fields(array('weight' => 1))
+    ->condition('name', 'ttt')
+    ->execute();
+}

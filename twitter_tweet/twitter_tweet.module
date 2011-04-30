@@ -49,18 +49,6 @@ function twitter_tweet_node_presave($node) {
 
 
 /**
- * Wrapper function for variable_set().
- *
- * @param $tags 
- *    $tags['name'] = array('types', 'go', 'here');
- *    e.g. 
- *    $tags['#example'] = array('hashtag', 'x', 'y', 'z');
- *    $tags['@jane'] = array('mention', 'a', 'b', 'c');
- */
-function twitter_tweet_set_tags($tags) {
-  variable_set('twitter_tags', $tags);
-}
-/**
  * @param $original_tweet
  *  String, original Twitter tweet.
  *
@@ -94,38 +82,6 @@ function twitter_tweet_replace_punctuation($original_tweet) {
   $tweet = str_replace('  ', ' ', $tweet);
 
   return $tweet;
-}
-
-/**
- * @param $word
- *  string
- *
- * @return $word
- *  string with punctuation that breaks hashtags and user references filtered out.
- *
- * @todo Is this still useful or used anywhere? Remove?
- */
-function twitter_tweet_filter_punctuation($word) {
-  // Punctuation marks, except underscore, end hashtag wherever punctuation occurs.
-  // Filter out stuff that breaks Twitter hashtags, so the taxonomy
-  // terms match real Twitter hashtags.
-  // e.g. on Twitter #this-breaks creates a hashtag called #this.
-  $chars = array(
-    '@','#', // Note: if ($position = strpos($word, $char)) evaluates false below,
-             // so this doesn't break hashtags and user refrences beginning with 
-             // @ or #.
-    '-',"'",'.',':',';',
-    '~','`','!','$','%','^',
-    '&','*','(',')','+','=','<','>',
-    '/','?',',','[','{',']','}','|','\\',
-  );
-  foreach($chars as $char) {
-    if ($position = strpos($word, $char)) {
-      $word = substr($word, 0, $position);
-    }
-  }
-
-  return $word; 
 }
 
 /**
@@ -193,123 +149,4 @@ function twitter_tweet_save_tags($tags) {
   }
 
   return $value;
-}
-
-/**
- * @param $tag_types
- *  Array of tag types like this: array('hashtag', 'x', 'y', 'z').
- * 
- * @return $types
- *  An array of taxonomy term arrays ready to be saved 
- *  in a tweet's field_twitter_tag_type.
- */
-function twitter_tweet_save_tag_types($tag_types) {
-  $types = array();
-
-  // Collect candidate vocabularies.
-  $vocabularies = array();
-  if ($vocabulary = taxonomy_vocabulary_machine_name_load('twitter_tag_types')) {
-    $vocabularies[$vocabulary->vid] = $vocabulary;
-  }
-
-  // Translate term names into actual terms.
-  foreach ($tag_types as $type) {
-    // See if the term exists and return the tid;
-    // otherwise, create a new term for insert/update.
-    if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($type), 'vid' => array_keys($vocabularies)))) {
-      $term = array_pop($possibilities);
-    }
-    else {
-      $vocabulary = reset($vocabularies);
-      $term = array(
-        'vid' => $vocabulary->vid,
-        'name' => $type,
-        'vocabulary_machine_name' => $vocabulary->machine_name,
-      );
-      $term = (object) $term;
-      taxonomy_term_save($term);
-      $term = (array) $term;
-    }
-    $types[] = (array)$term;
-  }
-
-  return $types;
-}
-
-/**
- * Twitter Tags have a taxonomy field called Twitter Tag Type.
- * This function takes a Twitter tag and returns it's types.
- * Standard types include "hashtag" and "mention". Other modules
- * can add their own Twitter tag types.
- * 
- * @param $param
- *  Integer, term id of a Twitter tag.
- *   Or
- *  Object, Twitter Tag term object.
- * 
- * @return
- *  Array $tag_types = array( tid => 'tag type name' );
- */
-function twitter_tweet_get_tag_types($param) {
-  $tag_types = array();
-  $tids = array();
-
-  if (is_object($param)) {
-    $tag = $param;  
-  }
-  else if (is_numeric($param)) {
-    $tid = $param;   
-    $tag = taxonomy_term_load($tid);
-  }
-
-  if (property_exists($tag, 'field_twitter_tag_types') 
-  && isset($tag->field_twitter_tag_types)) {
-    foreach ($tag->field_twitter_tag_types as $types) {
-      foreach ($types as $type) {
-        $tids[] = $type['tid'];
-      }
-      $tag_types = taxonomy_term_load_multiple($tids);
-      foreach ($tag_types as $tid => $obj) {
-        $tag_types[$tid] = $obj->name;  
-      }
-    }
-
-  return $tag_types;
-  }
-  else {
-    return FALSE;  
-  }
-}
-
-/**
- * @param $term
- *  Taxonomy term object.
- * 
- * @return 
- *  String for alias to be used in $term->path['alias'].
- *
- * @todo Note: It seems like it might be cleaner to handle this with theming, 
- *  by changing the term url, but taxonomy system's preprocess functions and 
- *  theme overrides aren't firing for some reason. 
- */
-function _twitter_tweet_term_alias($term) {
-  $alias = '';
-
-  if (substr($term->name, 0, 1) == '#') {
-    $alias = t('hashtag') . '/' . $term->tid;
-  }
-  else if (substr($term->name, 0, 1) == '@') {
-    $alias = t('mention') . '/' . $term->tid;
-  }
-  else {
-    return FALSE;  
-  }
-
-  // Give modules an opportunity to modify the path alias.
-  // TODO add error handling incase nobody implements hooks.
-  if ($aliases = module_invoke_all('twitter_tweet_twitter_tag_alias_alter', $term, $alias)) {
-    $alias = $aliases[0]; 
-  }
-
-  return $alias;
 }

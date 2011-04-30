@@ -21,7 +21,13 @@ function ttt_index_title($tid) {
 function ttt_index_page($tid) {
   $tag_type = taxonomy_term_load($tid);
 
-  $results = db_query("SELECT tid, name FROM taxonomy_term_data JOIN field_data_field_twitter_tag_types ON tid = entity_id WHERE field_twitter_tag_types_tid = :tid", array(':tid' => $tid))->fetchAll();
+  $results = db_query("SELECT tid, name "
+                    . "FROM taxonomy_term_data "
+                    . "JOIN field_data_field_twitter_tag_types ON tid = entity_id "
+                    . "WHERE field_twitter_tag_types_tid = :tid", 
+                    array(':tid' => $tid))
+                      ->fetchAllAssoc('name');
+  ksort($results);
   /*
   $results = db_select('taxonomy_term_data', 'ttd')
     ->fields('ttd')
@@ -33,7 +39,6 @@ function ttt_index_page($tid) {
 
   $link = array();
   $items = array();
-
   foreach ($results as $row) {
     $tid = $row->tid;
     $name = $row->name;

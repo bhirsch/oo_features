@@ -15,13 +15,13 @@ x Tweet field display
 x Twitter Tags vocab and field
 
 Twitter Tag Types module:
-- Twitter Tag Types vocab 
-- Twitter Tag Types field applied to Twitter Tags terms
-- twitter-tags/index/%
---- generate index get a listing of Twitter Tags terms tagged with Twitter Tag Type %
---- e.g.
---- twitter-tags/index/mention
---- twitter-tags/index/hashtag
+x Twitter Tag Types vocab 
+x Twitter Tag Types field applied to Twitter Tags terms
+x twitter-tags/index/%
+x-- generate index get a listing of Twitter Tags terms tagged with Twitter Tag Type %
+x-- e.g.
+x-- twitter-tags/index/mention
+x-- twitter-tags/index/hashtag
 - Sub-module: Twitter Tag Type Rules: 
 - User-defined settings for determining a tag types: 
 --- Action: Apply X tag type to Twitter tag if Y conditions are met.
@@ -40,11 +40,12 @@ Twitter Tag Types module:
 --- AND when [tag] [comes immediately before/after] [Y]
 --- AND when... 
 
-Video Tweet  module: 
-- Add video_url field to tweet content type
+Tweet Media  module: 
+x Add media_url field to tweet content type
 - Identify video URLs in Tweets and populate video field
 - Provide hook for other modules to validate video URL before it's saved
 - Provide validation callbacks for: valid URL AND unique valid URL
+- (?) Provide view mode for Tweet Media(?)
 
 Custom Modules: 
 

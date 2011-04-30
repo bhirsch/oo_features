@@ -4,3 +4,154 @@
  */
 
 // Drupal needs this blank file.
+// Code below added manually by bhirsch.
+
+/**
+ * Implements hook_node_presave().
+ * 
+ * Invoke hook_ttt_tags() to give modules an opportunity
+ * to add and alter $tags.
+ * 
+ */
+// TODO Make heavier than twitter_tweet so hook_node_presave() runs second.
+function ttt_node_presave($node) {
+  if ($node->type == 'tweet') {
+    // Give other modules a chance to modify $tags.
+    foreach(module_implements('ttt_tags_alter') as $module) {
+      $tags = module_invoke($module, 'ttt_tags_alter', $node, $tags);
+    }
+  }
+}
+
+/**
+ * Implements hook_ttt_tags_alter().
+ *
+ * @param $node
+ *  Node object of tweet node during hook_node_presave().
+ * 
+ * @param $tags
+ *  Array of Twitter Tags terms to be saved with $node.
+ *
+ * @return $tags
+ *  Modified terms to save with $node.
+ */
+/*
+function ttt_ttt_tags_alter($node, $tags) {
+}
+// */
+
+/**
+ * Get Twitter tags and tag types. If a tweet
+ * is passed, the function returns hashtags and mentions from the original tweet. 
+ * Otherwise ttt_get_tags() returns all cached Twitter tags.
+ * 
+ * When $original_tweet contains hashtags or mentions that have already
+ * been saved, these tags are merged with existing tags (which may include Twitter Tag
+ * Types terms added by other modules or users.)
+ *
+ * @param $original_tweet
+ *  String, tweet from Twitter.
+ * 
+ * @return $tags or $existing_tags
+ *  Return an array keyed by tag names.
+ *    $tags['name'] = array('types', 'go', 'here');
+ *    e.g. 
+ *    $tags['#example'] = array('hashtag', 'x', 'y', 'z');
+ *    $tags['@jane'] = array('mention', 'a', 'b', 'c');
+ */
+function ttt_get_tags($original_tweet = NULL) {
+  $existing_tags = variable_get('twitter_tags', NULL);
+
+  // No $original_tweet passed. Return all existing tags.
+  if (!$original_tweet) {
+    return $existing_tags;
+  }
+  // Pull tags out of tweet and return those.
+  else {
+    // Replace punctuation with spaces.
+    $tweet = twitter_tweet_replace_punctuation($original_tweet);
+    $tags = array();
+
+    $words = explode(' ', $tweet);
+    foreach($words as $word) {
+      // If the tag already exists, preserve existing tag types.
+      if (array_key_exists($word, $existing_tags)) {
+        $tags[$word] = $existing_tags[$word];
+      }
+      // The tag is new. All new Twitter Tags terms begin their lives as 
+      // a hashtag (#) or a mention (@).
+      // Get hashtags.
+      else if (substr($word, 0, 1) == '#') {
+        $tags[$word][] = 'hashtag';
+      } 
+      // Get mentions.
+      else  if (substr($word, 0, 1) == '@') {
+        $tags[$word][] = 'mention';
+      } 
+    }
+  }
+
+  return $tags;
+}
+
+/**
+ * @param $tags
+ *  $tags['#example'] => array('hashtag', 'video-category', 'etc');
+ * 
+ * @return $value
+ *  Array of taxonomy term arrays.
+ *
+ * @see taxonomy_autocomplete_validate().
+ * @see taxonomy_field_presave().
+ */
+function ttt_save_tags($tags) {
+  // Save the tags in $tag['#tag_name'] => array(hashtag, x, y, z) format
+  // in the variables table for easy access.
+  ttt_set_tags($tags);
+
+  $value = array();
+
+  // Collect candidate vocabularies.
+  $vocabularies = array();
+  if ($vocabulary = taxonomy_vocabulary_machine_name_load('twitter_tags')) {
+    $vocabularies[$vocabulary->vid] = $vocabulary;
+  }
+
+  // Translate term names into actual terms.
+  //$typed_terms = drupal_explode_tags($tags);
+  foreach ($tags as $tag_name => $tag_types) {
+    // First save any new tag types. These are taxonomy terms too.
+    $types = ttt_save_tag_types($tag_types);
+
+    // See if the term exists and return the tid;
+    // otherwise, create a new term for insert/update.
+    if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($tag_name), 'vid' => array_keys($vocabularies)))) {
+      $term = array_pop($possibilities);
+      // Check Twitter tag types and path alias.
+      if ($term->field_twitter_tag_types['und'] != $types || empty($term->path['alias'])) {
+        $term->field_twitter_tag_types = array('und' => $types);
+        $term->path['alias'] = _ttt_term_alias($term);
+        $term->path['language'] = 'und'; // @todo Make this dynamic.
+        taxonomy_term_save($term);
+      }
+    }
+    else {
+      $vocabulary = reset($vocabularies);
+      $term = array(
+        'vid' => $vocabulary->vid,
+        'name' => $tag_name,
+        'vocabulary_machine_name' => $vocabulary->machine_name,
+      );
+      $term = (object) $term;
+      $term->field_twitter_tag_types = array('und' => $types);
+      taxonomy_term_save($term); // We need the tid before we can set the alias.
+      $term->path['alias'] = _ttt_term_alias($term);
+      $term->path['language'] = 'und'; // @todo Make this dynamic.
+      taxonomy_term_save($term);
+    }
+    $value[] = (array)$term;
+  }
+
+  return $value;
+}
+

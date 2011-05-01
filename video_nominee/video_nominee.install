@@ -1,0 +1,17 @@
+<?php
+/**
+ * @file video_nominee.install
+ *  Set Video Nominee module weight to 1 so it runs after Tweet Media
+ *  module, otherwise _video_nominee_url_info() won't be able to do it's magic,
+ *  it counts on receiving the $node object after Tweet Media calls hook_node_presave().
+ */
+
+/**
+ * Implements hook_install().
+ */
+function video_nominee_install() {
+  db_update('system')
+    ->fields(array('weight' => 1))
+    ->condition('name', 'video_nominee')
+    ->execute();
+}

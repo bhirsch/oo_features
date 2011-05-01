@@ -1,31 +1,25 @@
-Twitter video nominations must follow this pattern: 
+Twitter video nominations should follow this pattern: 
 
-@onlineoscars nomination: #video_name http://something.com/video/url.
-example: 
-@onlineoscars nomination: #battle_at_kruger http://bit.ly/uec9. 
-
-OR 
-
-@onlineoscars nomination: #video_name http://something.com/video/url. Categories: #one #two #etc.
-@onlineoscars nomination: #video_name http://something.com/video/url. Category: #one.
-example: 
-@onlineoscars nomination: #battle_at_kruger http://bit.ly/uec9. Categories: #action #adventure #drama.
+nominate: #video_name @onlineoscars, http://bit.ly/uRl. categories: #one #two #three.
 
 Nominations must:
-- begin with "@onlineoscars nomination:"
-- include a unique video name
-- include a valid url to the video (short urls are fine)
-- end with a period
+- include the word "nominate" or "nomination"
+- include the mention "@onlineoscars"
+- only include one video name
+- new nominations must include a valid url to the video (short urls are fine) as first
+  URL in the tweet
+
+Nominations may:
+- include categories (between category/categories and '.' or end)
 
 video name: 
-- Video name is assigned by a valid nomination tweet
-- Video name must be unique
-- Video name immediately follows the text: "@onlineoscars nomination"
+- Video name is assigned by a valid nomination tweet.
+- Video name is the only hashtag in the first sentence of the tweet.
 
 video category:
 - Video categories must...
---- immediately follow the text: "categories" 
---- be preceded by a space, e.g. "categories: #one #two #etc."
+--- include "category" or "categories"
+--- categories must be listed as hashtags between "category" and "."
 --- end with a period, e.g. "categories: #one #two #three."
-@todo make this less fragile. For example, this wouldn't work: 
- "...blah blah blah.categories:#one, #two,#three."
+- To add categories to an existing video nominee, tweet must say
+  "Add category:" or "Add categories:"

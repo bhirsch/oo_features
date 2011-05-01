@@ -3,14 +3,12 @@
  * @file
  * Code for the Video Nominee feature.
  */
-include_once('video_nominee.theme.inc');
 
 /**
  * When tweets are imported from twitter, check to see if they're 
- * video nominations. If they are, add relevant tags and create corresponding
- * video_nominee node.
+ * video nominations. If they are, add relevant terms to Twitter Tag Types.
  * 
- * Implements hook_twitter_tweet_tags_alter().
+ * Implements hook_ttt_tag_types().
  *
  * @param $node
  *  Node object of tweet node during hook_node_presave().
@@ -21,41 +19,22 @@ include_once('video_nominee.theme.inc');
  * @return $tags
  *  Modified terms to save with $node.
  */
-// TODO Move this to Video nominee module.
 function video_nominee_ttt_tag_types($node, $tags) {
   // Check tweet to determine if it's a video nomination. 
   // If it is, get info.
-  $original_tweet = $node->field_tweet_original['und'][0]['value'];
-  $nomination_info = _video_nominee_nomination_info($original_tweet);
+  $nomination_info = _video_nominee_nomination_info($original_tweet, $node);
 
   // If tweet is a valid nomination, 
   // assign hashtag types and create a corresponding video_nominee node.
   if ($nomination_info['valid']) { 
-    $tags = _video_nominee_tag_types($original_tweet, $tags, $nomination_info['video name']);
-    $author = $node->field_twitter_author['und'][0]['tid'];
-    _video_nominee_create_node($nomination_info, $tags, $author);
+    // TODO rework this...
+    $tags = _video_nominee_tag_types($nomination_info, $tags);
   } 
   else {
-    switch ($nomination_info['error code']) {
-      case 100: // Tweet is not a nomination.   
-      break;
-
-      case 102: // Invalid URL.
-      break;
-      case 103: // No URL found in tweet.
-      break;
-
-      case 104: // Video name doesn't begin with #.
-      break;
-      case 105: // No dashes or spaces allowed in name.
-      break;
-      case 106: // Video name already exists.
-      break;
-    } // End switch ($nomination_info['error code']).
-    // TODO Log errors to watchdog.
     $txt = t('Please contact and administrator about the tweet: !tweet. ', 
              array('!tweet' => $nomination_info['original tweet']));
     $txt .= $nomination_info['error message'];
+    watchdog('video_nominee', $txt, WATCHDOG_WARNING);
     drupal_set_message($txt, 'warning');
     // @todo Process hashtags that are not new nominations.
   }
@@ -68,191 +47,168 @@ function video_nominee_ttt_tag_types($node, $tags) {
 //------------------------------------------------------//
 
 /**
- * Create video_nominee node.
+ * Implments hook_tweet_media_validate_url().
  * 
- * @param $nomination_info
- *  Nomination info array returned by _video_nominee_nomination_info().
+ * @param $url_info
+ *  $url_info = array(
+ *    'original_url' => 'http://bit.ly/xyz',
+ *    'destination_url' => 'http://youtube.com/xyz',
+ *    'valid' => TRUE, // or FALSE
+ *    'error message' => 'explain why false if it's false',
+ *    'error code' => '123',
+ *  );
  * 
- * @param $tags
- *  Taxonomy terms and tags from parent tweet node.
- * 
- * @param $author
- *  From parent tweet node: 
- *  $author = $node->field_twitter_author['und'][0]['value'];
- *  
+ * @return $url_info
+ *  Modified $url_info array.
  */
-function _video_nominee_create_node($nomination_info, $tags, $author) {
-  $node = new stdClass();
-
-  $node->type = 'video_nominee';
-  $node->title = $nomination_info['video name'];
-  $node->field_video_url['und'][0]['url'] = $nomination_info['url'];
-  // Save Twitter Author term (that is, the person who nominated this video).
-  $node->field_twitter_author['und'][0]['tid'] = $author;
-  // Save video name and video category Twitter Tags terms.
-  $tags = _video_nominee_get_tags($tags);
-  $tags = twitter_tweet_save_tags($tags);
-  $node->field_twitter_tags['und'] = $tags;
-  // Prepare and save node.
-  node_save($node); 
+function video_nominee_tweet_media_validate_url($url_info) {
+  $url = $url_info['destination_url'];
+  // Check to see if this URL has been saved with any other tweets yet.
+  $results = db_query('SELECT field_media_url_url '
+                    . 'FROM field_data_field_media_url '
+                    . 'WHERE field_media_url_url = :url', array(':url' => $url))->fetchAll();
+  if (!empty($results)) {
+    $url_info['valid'] = FALSE; 
+    $url_info['error message'] = t('This URL has already been nominated for @onlineoscars '
+                                 . '!url.', array('!url' => $url));
+    $url_info['error code'] = 010;
+  }
+  
+  return $url_info;
 }
 
 /**
- * Validate url.
+ * Test URL for new video name.
+ * If the URL already exists, it will be filtered out during hook_tweet_media_validate_url().
+ * Here's what we're checking for: 
+ * - Confirm there's a URL in the first sentence of the tweet.
+ * - Check $node object and confirm new URL made it through the validate_url filter.
+ *   If there's no URL, this Tweet's URL must exist under a different name, or it's invalid.
+ * - @todo count number of URLs in tweet. add more rigorous validate if there are 
+ *   more than one URL in tweet.
  * 
- * @param $url
- *  string, url
+ * @todo Where should we notify user? Here or under hook_tweet_media_validate_url()?
  * 
- * @return $url_info
- *  $url_info = array(
- *    'original' => 'http://bit.ly/xyz',
- *    'destination' => 'http://youtube.com/xyz',
- *    'valid' => TRUE, // or FALSE
- *    'error message' => 'explain why false if it's false',
- *  );
+ * @param $node
+ *  string
+ * 
+ * @return
+ *  $url_info['valid'] = TRUE/FALSE;
+ *  $url_info['error code'] = integer
+ *  $url_info['error message'] = string
  */
-function _video_nominee_validate_url($url) {
+function _video_nominee_url_info($node) {
   $url_info = array();
+  $url_info['valid'] = FALSE; // Assume invalid until we prove otherwise.
+  $original_tweet = $node->field_tweet_original['und'][0]['value'];
 
-  if (substr($url, -1 == '.')) {
-    $url = substr($url, 0, -1);  
+  // Check $node object and confirm URL made it through video_nominee's implementation 
+  // of hook_tweet_media_validate_url(). 
+  $is_valid = FALSE;
+  foreach ($node->field_media_url['und'] as $delta => $media_url) {
+    if (empty($media_url['url'])) {
+      // This is just for good measure. Unset field if anything snuck through without a url.
+      unset($node->field_media_url['und'][$delta]); 
+    } else {
+      // The tweet contained at least one valid URL.  
+      $is_valid = TRUE;
+    }
   }
-  $url_info['original'] = $url;
-
-  // Test url. Get final destination in case url sent via Twitter
-  // is a shortened URL. 
-  $destination = destination_url($url);
-  // HTTP code should be 2xx.
-  // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-  $http_code = $destination['http_code'];
-  if ($http_code >= 200 && $http_code < 300) {
-    $url_info['destination'] = $destination['url'];
-    $url_info['valid'] = TRUE;
-  } 
-  // Invalid url.
-  else {
-    $url_info['valid'] = FALSE;
-    $url_info['error message'] = t('Not a valid URL. HTTP code: !code',
-                                array('!code' => $http_code));
+  if (!$is_valid) {
+    $url_info['error code'] = 111;
+    $url_info['error message'] = t('No valid URL. '
+                                 . 'Either this video has already been nominated or '
+                                 . 'the URL was invalid: !tweet',  
+                                  array('!tweet' => $original_tweet));
+    return $url_info;
   }
 
+  // Confirm there's a URL in the first sentence of the tweet.
+  // there's no URL, this Tweet's URL must exist under a different name, or it's invalid.
+  $end = (strpos($original_tweet, '.')) ? strpos($original_tweet, '.') : strlen($original_tweet);
+  if (!strpos($original_tweet, 'http://', $end)) {
+    // There's no URL in the first sentence. Invalid.
+    $url_info['error code'] = 111;
+    $url_info['error message'] = t('No URL found in first sentence of tweet, !tweet ', 
+                                  array('!tweet' => $original_tweet));
+    return $url_info;
+  }
+
+  // If we made it this far, URL is valid.
+  $url_info['valid'] = TRUE;
 
   return $url_info;
 }
 
 /**
- * Validate video name. 
- * - name must be a twitter hashtag
- * - name must be unique 
- *
- * @param $video_name
- *  Proposed name for video nominee.
- *
- * @return $name_info 
- *  Array. $name_info = array(
- *    'valid' => TRUE,
+ * Get video name.
+ * - video name is the only hashtag in the first sentence of the tweet.
+ * - check if name already exists
  * 
- *    'valid' => FALSE,
- *    'error code' => 1xx,
- *    'name tag' => $term, // A tag by this name already exists, return it's term object
- *  );
- * 
- * @todo Add a similar validation check in case nodes are manually added and saved.
+ * @params
+ * TODO
+ * @return
+ *  $name_info['valid']
+ *  $name_info['video name']
+ *  $name_info['new name']
+ *  $name_info['name tag'] // taxonomy term object for video name if it already exists
+ *  $name_info['error code']
+ *  $name_info['error message']
  */
-function _video_nominee_validate_name($video_name) {
-  $is_valid = TRUE;
-  // Check for # symbol. (required)
-  if (substr($video_name, 0, 1) != '#') {
-    $name_info['error code'] = 104;
-    $name_info['error message'] = t('Video names must begin with #.');
-    $is_valid = FALSE;
+function video_nominee_name($nomination_info, $original_tweet) {
+  // Get the first sentence of the tweet.
+  $end = (strpos($original_tweet, '.')) ? 
+          strpos($original_tweet, '.') : strlen($original_tweet);
+  $string = substr($original_tweet, 0, $end);
+  // Get Twitter tags from first sentence. There should only be one tag, the video name.
+  $tags = twitter_tweet_get_tags($string);
+  $count = 0; // Count the number of hashtags returned. There should only be one.
+  foreach ($tags as $tag) {
+    // We're not interested in mentions (@), only hashtags (#).
+    if (substr($tag, 0, 1) == '#') {
+      $name_info['video name'] = $tag;
+      ++$count;
+    }  
   }
-  // Check for dashes and spaces. (invalid)
-  if (strpos($video_name, '-') || strpos($video_name, ' ')) {
-    $name_info['error code'] = 105;
-    $name_info['error message'] = t('No dashes or spaces allowed in name.');
-    $is_valid = FALSE;
+  if ($count > 1) {
+    // There should only be one hashtag in the first sentence.
+    $name_info['valid'] = FALSE;
+    $name_info['error code'] = '001';
+    $name_info['error message'] = t('Invalid nomination. Nominations should only have one hashtag in the first sentence. Error occured here: !tweet', array('!tweet' => $original_tweet));
   }
-  // Make sure name is unique.
-  if ($is_valid) {
-    /*
-    $result = db_select('node', 'n')
-        ->fields('n', array('title'))
-        ->condition(db_and()
-            ->condition('type', 'video_nominee', '=')
-            ->condition('title', $video_name, '=')
-        )
-        ->execute()
-        ->fetchAssoc();
-    // */
-    $results = db_query("SELECT title FROM {node} "
-              ."WHERE title = :title "
-              ."AND type = :type ",
-              array(':title' => $video_name, ':type' => 'video_nominee'))->fetchAllAssoc('title');
-    if (is_array($results) && !empty($results)) {
-      /*
-      // Name already exists. @todo notify sender of error.
-      $terms = taxonomy_get_term_by_name($video_name);  
-      // Terms are treturned like this: 663 => stdClass where 663 is a term id.
-      foreach ($terms as $term) {
-        $tag = $term; // There should only be one of these. 
-      }
-      $name_info['video name'] = $video_name;
-      $name_info['name tag'] = $tag;
-      // */
-      $name_info['error code'] = 106;
-      $name_info['error message'] = t('Video name already exists.');
-      $is_valid = FALSE;
+  else if ($count == 0) {
+    $name_info['valid'] = FALSE;
+    $name_info['error code'] = '002';
+    $name_info['error message'] = t('Invalid nomination. Nominations should a hashtag in the first sentence for the name of the video being nominated. Error occured here: !tweet', array('!tweet' => $original_tweet));
+  } else {
+    $name_info['valid'] = TRUE; 
+    if ($name_info['name tag'] = video_nominee_name_tag($name_info['video name'])) {
+      $name_info['new name'] = FALSE;
     }
-  }
-  $name_info['valid'] = $is_valid;
+    else {
+      $name_info['new name'] = TRUE;
+    } 
+  } 
 
   return $name_info;
 }
 
+
+
 /**
- * Assign hashtag types:
- * - video name
- * - video category 
+ * Get video categories from tweet.
  * 
- * video name: 
- * - Video name is assigned by a valid nomination tweet
- * - Video name must be unique
- * - Video name immediately follows the text: "@onlineoscars nomination"
+ * If video already exists, categories can only be added if tweet
+ * says "Add category" or "Add categories". If tweet doesn't include these words 
+ * and it's not a new nomination, nomination is not valid.
  * 
- * video category:
- * - Video categories must...
- * --- immediately follow the text: "categories" 
- * --- be preceded by a space, e.g. "categories: #one #two #etc."
- * --- end with a period, e.g. "categories: #one #two #three."
- * 
- * @param $original_tweet
- *  string
- * 
- * @param $tags
- *  @see twitter_tweet_get_tags().
- * 
- * @param $video_name
- *  boolean
- * 
- * @return $tags
- *  @see twitter_tweet_get_tags().
- */
-function _video_nominee_tag_types($original_tweet, $tags, $video_name = NULL) {
+ * @return
+ *  $categories = array('#one', '#two', '#three');
+ */ 
+function video_nominee_categories($original_tweet) {
   $tweet = strtolower($original_tweet);
 
-  // If there is a $video_name, 'video name' type should be assigned to a taxonomy term. 
-  if ($video_name) {
-    // Find the video name hashtag.
-    foreach ($tags as $tag_name => $tag_types) {
-      if ($tag_name == $video_name) {
-        $tags[$tag_name][] = 'video name';
-      }
-    }
-  }
-  
-  // Assign 'video category' type to corresponding hashtags.
-  // Category tags start immediately after 'categories:' or 'category:'.
+  // Category tags start immediately after 'categories' or 'category'.
   if (!$start_position = strpos($tweet, 'categories')) {
     $start_position = strpos($tweet, 'category');
   }
@@ -264,13 +220,38 @@ function _video_nominee_tag_types($original_tweet, $tags, $video_name = NULL) {
   }
   $categories_string = substr($tweet, $start_position, $end_position); 
   $category_tags = twitter_tweet_get_tags($categories_string);
-  foreach ($tags as $tag_name => $tag_types) {
-    if (array_key_exists($tag_name, $category_tags)) {
-      $tags[$tag_name][] = 'video category';
-    }
+
+  return $category_tags;
+} 
+
+/*
+ * Assign hashtag types:
+ * - video name
+ * - video category 
+ * 
+ * @param $tags
+ *  @see twitter_tweet_get_tags().
+ * 
+ * @param $nomination_info
+ *  Array. See @return _video_nominee_nomination_info().
+ * 
+ * @return $tags
+ *  @see twitter_tweet_get_tags().
+ */
+function _video_nominee_tags_types($nomination_info, $tags) {
+  $video_name = $nomination_info['video name'];
+  $categories = $nomination_info['vide categories']; 
+
+
+  // If there is a $video_name, 'video name' type should be assigned to a taxonomy term. 
+  if ($video_name) {
+    $tags[$video_name][] = 'video name';
   }
 
-  // @todo for some reason this is breaking when there are additional mentions after categories. figure out why.
+  // Video categories.
+  foreach ($categories as $category) {
+    $tags[$category][] = 'video category';
+  }
   
   return $tags;
 }
@@ -287,88 +268,76 @@ function _video_nominee_tag_types($original_tweet, $tags, $video_name = NULL) {
  *  - $nomination_info = array (
  *      'original tweet' => $original_tweet,
  *      'video name' => '#video_name', 
- *      'url' => 'http://example.com/something', // final destination 
+ *      'name tag' => $term, // taxonomy term object for video name if it already exists
+ *      'video categories' => array('#category1', '#category2', '#category3') 
+ *      'new video' => TRUE/FALSE,
  *      'valid' => TRUE / FALSE,
  *      'error message' => TRUE / FALSE,
  *      'error code' => 123,
  *    );
  */
-function _video_nominee_nomination_info($original_tweet) {
+function _video_nominee_nomination_info($original_tweet, $node) {
+  $original_tweet = $node->field_tweet_original['und'][0]['value'];
+
   $nomination_info = array();
   $nomination_info['original tweet'] = $original_tweet;
 
   // Assume tweet does not validate. Set to TRUE as final step if it makes it that far.
   $nomination_info['valid'] = FALSE;
 
-  // Determine whether tweet is a video nomination.
-  //   Nominations look like this: 
-  //   @onlineoscars nomination: #video_name http://something.com/video/url. 
-  //   categories #one #two #etc.
+  // Nominations must:
+  // - include the word "nominate" or "nomination"
+  // - include the mention "@onlineoscars"
   $tweet = strtolower($original_tweet);
-  // TODO
-  // CONTINUE HERE MAKE TWEETS MORE HUMAN READABLE.
-  // LIKE "nominate: #battle_at_kruger @onlineoscard, http://something. 
-  // categories: #one #two #three."
-  if (substr($tweet, 0, 24) == '@onlineoscars nomination') {
-    $is_nomination = TRUE; 
+  $includes_nominate = (strpos($tweet, 'nominate')) ? TRUE : strpos($tweet, 'nomination'); 
+  $includes_onlineoscars = (strpos($tweet, '@onlineoscars')) ? TRUE : FALSE;
+  if ($includes_nominate && $includes_onlineoscarsid) {
+    $is_nomination = TRUE;
   } 
   else {
     // @todo Report validation errors to user via Twitter when validation fails.
-    $nomination_info['error message'] = t('Not a video nomination. Nominations begin with !nomination', array('!nomination' => '"@onlineoscars nomination"'));
+    $nomination_info['error message'] = t('Not a video nomination. Should look like this: I nominate #my_video @onlineoscars, http://example.com/my/video. Categories: #action, #adventure, #drama.');
     $nomination_info['error code'] = '100';
     return $nomination_info;
   }
 
+  // TODO Use or delete...
+  // $video_name_info = _video_nominee_validate_video_name($tweet);
+  // $nomination_info['valid'] = TRUE;
+  // $nomination_info['video name'] = $video_name_info['name'];
+  // $nomination_info['new video'] = $video_name_info['new video'];
+
   // Validate nomination by making sure it has the minimum required parts.
   if ($is_nomination) {
-    $parts = explode(' ', $tweet);
-    // Validate name. Verify video name is not taken.
-    $name_info = _video_nominee_validate_name($parts[2]);
+    // Get video name. 
+    $name_info = video_nominee_name($nomination_info, $original_tweet);
     if ($name_info['valid']) {
-      $nomination_info['video name'] = $parts[2];
+      $nomination_info['video name'] = $name_info['video name'];
+      $nomination_info['name tag'] = $name_info['name tag'];
     }
     else {
-      // @todo Report validation errors to user via Twitter when validation fails.
       $nomination_info['error message'] = $name_info['error message'];
       $nomination_info['error code'] = $name_info['error code'];
-      $nomination_info['name tag'] = $name_info['name tag'];
       $nomination_info['video name'] = $name_info['video name'];
       return $nomination_info;
     }
-    // Validate video url. Verify $url is a valid URL.
-    // Use original case from original tweet. YouTube and bit.ly have case sensitive URLs.
-    $parts = explode(' ', $original_tweet);
-    // Find the first URL in in the tweet. 
-    // URL should be $part[3], but it might not be if someone miss typed.
-    $i = 0;
-    $found_url = FALSE;
-    do {
-      if (substr($parts[$i], 0, 7) == 'http://') {
-        $url_info = _video_nominee_validate_url($parts[$i]);
-        $found_url = TRUE;
-      }  
-      $i++;
-    } while ($found_url == FALSE && $i < count($parts)); 
-    if ($url_info) {
-      if ($url_info['valid']) {
-        $nomination_info['url'] = $url_info['destination'];
-      }
-      else {
-        // @todo Report validation errors to user via Twitter when validation fails.
-        $nomination_info['error message'] = $url_info['error message'];
-        $nomination_info['error code'] = '102';
-        return $nomination_info;
-      }
-    } 
-    else { // Invalid URL.
-      // @todo Report validation errors to user via Twitter when validation fails.
-      $nomination_info['error message'] = t('No URL found in tweet.');
-      $nomination_info['error code'] = '103';
-      return $nomination_info;
+    // Validate video name. 
+    // If it's a new name, make sure URL is new too (not an existing URL under different name)
+    
+    // test URL. If URL exists under a different name, 
+    // the nomination is not valid.
+    // Note: If the name is not new, we don't check URL. We assume any URLs in 
+    // the tweet are either referencing an existing nominee, or are relevant in 
+    // the context of the tweet.
+    if ($name_info['new name']) {
+      $url_info = _video_nominee_url_info($node);
+      $nomination_info['new video'] = $url_info['valid'];
     }
-    // Verify no other videos at this URL have been nominated yet.
 
+    // Get categories
+    $nomination_info['video categories'] = video_nominee_categories($original_tweet);
   } 
+
   // If we made it to here, nomination is valid.
   $nomination_info['valid'] = TRUE;
 
@@ -376,28 +345,20 @@ function _video_nominee_nomination_info($original_tweet) {
 }
 
 /**
- * Only apply video name and video category tags to the video_nominee node.
+ * Find out if valid video name is new, or if this video name already exists.
  * 
- * @param $tags
- *  Array of $tags to be applied to parent nomination tweet.
- *    $tags['name'] = array('types', 'go', 'here');
- *    e.g. 
- *    $tags['#example'] = array('hashtag', 'x', 'y', 'z');
- *    $tags['@jane'] = array('mention', 'a', 'b', 'c');
- * 
- * @return $nominee_tags
- *  Array of tags to be applied to video_nominee node.
- *    $tags['#example'] = array('hashtag', 'video name');
- *    $tags['#example2'] = array('hashtag', 'video category');
+ * @param $name
+ *  String. Twitter hashtag like this: #video_name.
+ *
+ * @return
+ *  Return taxonomy $term object if name exists already. Otherwise return FALSE.
  */
-function _video_nominee_get_tags($tags) {
-  $nominee_tags = array();
-  foreach($tags as $name => $types) {
-    if (in_array('video name', $types) || in_array('video category', $types)) {
-      $nominee_tags[$name] = $types;
+function video_nominee_name_tag($name) {
+  $terms = taxonomy_get_term_by_name($name);
+  foreach ($terms as $term) {
+    if ($term->vocabulary_machine_name == 'twitter_tags') {
+      return $term;
     }
   }
-
-  return $nominee_tags;
+  return FALSE;
 }
-

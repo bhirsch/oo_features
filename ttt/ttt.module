@@ -32,12 +32,8 @@ function ttt_menu() {
   $terms = taxonomy_get_tree($vid);
   $tids = array();
   foreach ($terms as $term) {
-    $tids[] = $term->tid;
-  } 
-
-  foreach ($tids as $tid) {
-    $items["twitter-tag-types/$tid"] = array(
-      'title' => 'Twitter Tag Type Index',
+    $items["twitter-tag-types/$term->tid"] = array(
+      'title' => $term->name, 
       'title callback' => 'ttt_index_title',
       'title arguments' => array(1),
       'description' => 'Listing of Twitter Tags by Type',
@@ -45,13 +41,9 @@ function ttt_menu() {
       'page callback' => 'ttt_index_page',
       'page arguments' => array(1),
       'file' => 'ttt.page.inc',
-      // TODO Why doesn't this menu show up? 
-      'menu_name' => 'twitter-tag-types',
-      'type' => MENU_NORMAL_ITEM,
+      'menu_name' => 'ttt',
     );
-    // TODO add listing of Types (e.g. hashtag, mention, video name, video category)
-    //$items["twitter-tag-types"] = array(
-  }
+  } 
 
   return $items;
 }

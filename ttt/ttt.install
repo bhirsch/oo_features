@@ -13,4 +13,12 @@ function ttt_install() {
     ->fields(array('weight' => 1))
     ->condition('name', 'ttt')
     ->execute();
+
+  $menu = array(
+    'menu_name' => 'ttt',
+    'title' => t('Twitter Tag Types'),
+    'description' => t('Tags applied to Twitter Tag vocabulary terms'),
+  );
+  menu_save($menu);
+
 }

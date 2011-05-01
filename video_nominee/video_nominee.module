@@ -158,14 +158,16 @@ function _video_nominee_url_info($node) {
 function video_nominee_name($nomination_info, $original_tweet) {
   // Take the URL out of the tweet, otherwise periods make it difficult
   // to examine it.
+  /*
   $replace_url = ' ';
   $tweet = preg_replace("
     #((http|https|ftp)://(\S*?\.\S*?))(\s|\;|\)|\]|\[|\{|\}|,|\"|'|:|\<|$|\.\s)#ie",
       $replace_url, $original_tweet);
+  // */
   // Now get the beginning and end of the first sentence.
-  $end = (strpos($tweet, '.')) ? 
-          strpos($tweet, '.') : strlen($tweet);
-  $string = substr($tweet, 0, $end);
+  $end = (strpos($original_tweet, '.')) ? 
+          strpos($original_tweet, '.') : strlen($original_tweet);
+  $string = substr($original_tweet, 0, $end);
   // Get Twitter tags from first sentence. There should only be one tag, the video name.
   $tags = twitter_tweet_get_tags($string);
   $count = 0; // Count the number of hashtags returned. There should only be one.

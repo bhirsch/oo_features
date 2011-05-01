@@ -5,5 +5,6 @@ description = "Add a media URL field to tweet content type for tweeted media (e.
 features[field][] = "node-tweet-field_media_url"
 name = "Tweet Media"
 package = "Features"
+php = "5.2.4"
 project = "tweet_media"
 version = "7.x-1.0"

@@ -139,13 +139,6 @@ function _video_nominee_validate_url($url) {
                                 array('!code' => $http_code));
   }
 
-  // If it's a valid URL, make sure it's unique. 
-  if ($url_info['valid']) {
-    // TODO
-    // Check video_nominee-field_video_url to URL hasn't been nominated yet.
-    // TODO 
-    // If it has, report #video_name and URL.
-  }
 
   return $url_info;
 }

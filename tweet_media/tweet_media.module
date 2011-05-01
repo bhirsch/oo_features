@@ -40,12 +40,16 @@ function tweet_media_node_presave($node) {
           //}
         $urls[] = $url_info;
         }
+        else {
+          // Report errors.
+          $message = $url_info['error message'];
+          $code = t('Error code:') . ' ' . $url_info['error code'];
+          $txt = $message . ' ' . $code;
+          watchdog('tweet_media', $txt, WATCHDOG_WARNING);
+          drupal_set_message($txt, 'warning');
+        }
       }  
     }
-
-// CONTINUE HERE
-// FIRST MEDIA URL SAVES. SECOND FAILS.
-
     // Add valid URLs to $node media_url field.
     foreach ($urls as $url_info) {
       if ($url_info['valid']) {
@@ -157,6 +161,8 @@ function tweet_media_url_chars() {
   return array(
     'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
     'r','s','t','u','v','w','x','y','z',
+    'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q',
+    'R','S','T','U','V','W','X','Y','Z',
     '1', '2','3','4','5','6','7','8','9','0',
     "/",
   ); 

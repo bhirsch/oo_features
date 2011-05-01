@@ -55,11 +55,19 @@ Video Nominee module
 --- [existing video name]
 --- [new video name]
 - Pages: 
---- Do we need to implement a hook? Hopefully these just work with TTT module...
---- twitter-tags/index/video-category
---- twitter-tags/index/video-name
+x-- Do we need to implement a hook? Hopefully these just work with TTT module...
+x-- twitter-tags/index/video-category
+x-- twitter-tags/index/video-name
 - Implementation of Video URL validation hook: 
 --- Don't store URL if it already exists (if it's already been nominated)
+--- Rule 1: 
+--- [Do not store Media URL] if [URL has already been tweeted]
+--- Rule 2: 
+--- [Apply tag] [existing video name] [to tweet/tag] if [URL has already been tweeted]
+--- Rule 3: 
+--- Figure out how to do this:
+    [[Add a notification message: This has already been nominated. See #video_name.]]
+--- Add a notification field to tweet node(?)
 - Implementation of _____ hook
 --- Notify user that video has already been nominated
 - Rules (built on Twitter Tag Types module): 
@@ -125,6 +133,8 @@ IF TWITTER TAG TYPES DOESN'T WORK...
 1.0-alphaX Roadmap
 -------------------
 Apps
+- DEMO: Snap pics and video with iPhone. Upload to Flickr/Youtube. Tweet.
+  then show website (with updated multimedia slideshow)
 - Video Tweet
 - Vote Tweet
 - Tweet rules
@@ -169,24 +179,14 @@ Documentation
 
 Make _alter hooks proper drupal_alter() functions.
 
-Rules
-------
-- Twitter tags (hashtags and mentions) that meet some criteria get assigned a user-defined tag type (e.g. 'video-name' and 'video-nominee')
-    Is rules interface too complicated? Maybe just a drag-and-drop, admin screen where
-    tags get assigned paths and use drag-and-drop to prioritize, e.g. video-name > hashtag.
-- Tweet creation triggers node creation (e.g. create Video Nominee node)
-    -> tokens to be made available for action: URLs, hashtags, mentions, original tweet
-    -> map tokens to fields
-- Assign Twitter tags path alias according to tag type (could this be handled 
-  by hooking into PathAuto somehow?)
+Video Filter Field
+------------------
+Provide display settings with fixed additional size settings for fields
+that are auto generated (e.g. media_url for tweets) for increased flexibility.
 
 Path Auto
 --------
 - Assign twitter tag path according to tag type(?) Or is this a Rules project?
-
-Content Types
--------------
-- Tweet nomination or Video Nominee should contain a node reference to the other.
 
 Field Widgets
 --------------
@@ -196,9 +196,3 @@ Queries
 -------
 Replace db_query() with PDO style queries.
 
-
-PLATFORM
-
-Video Tweet Module
--------------------
-- Add video_url field to tweet. Automatically detect video url inside tweet, then add URL to video_url:video_filter field

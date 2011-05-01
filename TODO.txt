@@ -39,10 +39,11 @@ x Identify video URLs in Tweets and populate video field
 Custom Modules: 
 
 Video Nominee module 
-- [Get rid of video_nominee content type]
+/ [Get rid of video_nominee content type]
 - handle existing video name
 - handle video name
 - handle video categories
+- hook into tweet_media and prevent duplicate URLs
 x Pages: 
 x-- Do we need to implement a hook? Hopefully these just work with TTT module...
 x-- twitter-tags/index/video-category
@@ -94,6 +95,16 @@ Apps
 - Legislation Tweets
 - Resources Tweet
 - Breaking News Tweet
+
+Tweet Server
+- API enabling other modules to send tweets (e.g. to confirm recipt of tweet 
+  and say nomination was valid/invalid)
+
+Tweet Messager 
+- API for sending direct message to users
+
+Video Nominee module:
+- notify users of valid/invalid nominations
 
 Twitter Tag Types module:
 - Sub-module: Twitter Tag Type Rules: 

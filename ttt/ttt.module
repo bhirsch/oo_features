@@ -68,7 +68,6 @@ function ttt_node_presave($node) {
     // to terms in Twitter Tags vocabulary.
     $tags = ttt_get_tags($original_tweet);
     // Give other modules a chance to modify $tags.
-    // TODO move this stuff out of video_nominee module.
     foreach(module_implements('ttt_tag_types') as $module) {
       $tags = module_invoke($module, 'ttt_tag_types', $node, $tags);
     }
@@ -311,3 +310,7 @@ function ttt_get_tag_types($param) {
     return FALSE;  
   }
 }
+
+/**
+ *
+ */

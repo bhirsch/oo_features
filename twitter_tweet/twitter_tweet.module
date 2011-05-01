@@ -85,7 +85,7 @@ function twitter_tweet_replace_punctuation($original_tweet) {
 
 /**
  * @param $original_tweet
- *  String. Twitter tweet.
+ *  String. Twitter tweet. (Or extract tags from part of a tweet.)
  * 
  * @return 
  *  array('#tag1', '@tag2', '#tagN');
@@ -149,3 +149,4 @@ function twitter_tweet_save_tags($tags) {
 
   return $value;
 }
+

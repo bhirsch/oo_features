@@ -32,13 +32,14 @@ function tweet_media_node_presave($node) {
     foreach ($parts as $part) {
       // Find URLs.
       if (substr($part, 0, 7) == 'http://') {
-        // TODO Validate URL.
-        $url_info = tweet_media_validate_url($part);
+        // Validate URL.
+        $url_info = tweet_media_url_info($part);
+        // Give other modules a chance to validate URL.
+        foreach (module_implements('tweet_media_validate_url') as $module) {
+          $url_info = module_invoke($module, 'tweet_media_validate_url', $url_info);
+        }  
         if ($url_info['valid']) {
-          // TODO Give other modules a chance to validate URL.
-          //foreach (module_implements('some_hook')) {
-          //}
-        $urls[] = $url_info;
+          $urls[] = $url_info;
         }
         else {
           // Report errors.
@@ -57,6 +58,8 @@ function tweet_media_node_presave($node) {
         //  Is there a way to determine language for tweets? 
         $node->field_media_url['und'][] = array(
           'url' => $url_info['destination_url'],
+          'height' => 400, // @todo make this configurable.
+          'width' => 400,  // @todo make this configurable.
         );
       }
     }
@@ -89,7 +92,7 @@ function tweet_media_form_tweet_node_form_alter(&$form, &$form_state) {
  * 
  * @todo Consider breaking each step into small separate functions. Maybe easier to test.
  */
-function tweet_media_validate_url($url) {
+function tweet_media_url_info($url) {
   $url_info = array();
 
   // Assume URL is not valid until we prove otherwise.

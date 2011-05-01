@@ -3,10 +3,7 @@
  * @file
  * Code for the Video Nominee feature.
  */
-
-include_once('video_nominee.features.inc');
 include_once('video_nominee.theme.inc');
-
 
 /**
  * When tweets are imported from twitter, check to see if they're 

@@ -36,19 +36,21 @@ function ttt_menu() {
   } 
 
   foreach ($tids as $tid) {
-    $items["ttt/index/$tid"] = array(
+    $items["twitter-tag-types/$tid"] = array(
       'title' => 'Twitter Tag Type Index',
       'title callback' => 'ttt_index_title',
-      'title arguments' => array(2),
+      'title arguments' => array(1),
       'description' => 'Listing of Twitter Tags by Type',
       'access arguments' => array('access content'),
       'page callback' => 'ttt_index_page',
-      'page arguments' => array(2),
-      'file' => 'ttt.index.inc',
+      'page arguments' => array(1),
+      'file' => 'ttt.page.inc',
       // TODO Why doesn't this menu show up? 
       'menu_name' => 'twitter-tag-types',
       'type' => MENU_NORMAL_ITEM,
     );
+    // TODO add listing of Types (e.g. hashtag, mention, video name, video category)
+    //$items["twitter-tag-types"] = array(
   }
 
   return $items;
@@ -73,7 +75,7 @@ function ttt_node_presave($node) {
     }
     // Now perpare terms as taxonomy terms.
     if (!empty($tags)) {
-      $tags = ttt_save_tags($tags); // TODO?
+      $tags = ttt_save_tags($tags); 
     }
     // Add terms to node.
     $node->field_twitter_tags['und'] = $tags;
@@ -88,7 +90,7 @@ function ttt_theme($existing, $type, $theme, $path) {
     'ttt_index_term' => array(
       //'render element' => 'element',
       'variables' => array('item' => NULL),
-      'file' => 'ttt.index.inc',
+      'file' => 'ttt.page.inc',
     ),
   );  
 }
@@ -153,6 +155,10 @@ function ttt_get_tags($original_tweet = NULL) {
     }
   }
 
+  // Get rid of any duplicates.
+  foreach ($tags as $delta => $tag) {
+    $tags[$delta] = array_unique($tag);  
+  }
   return $tags;
 }
 

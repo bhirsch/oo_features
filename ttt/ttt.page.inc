@@ -1,10 +1,10 @@
 <?php
 /**
- * @file ttt.index.inc
- *  Callbacks for ttt/index/% page.
+ * @file ttt.page.inc
+ *  Callbacks for twitter-tag-types/% pages.
  */
 /**
- * Callback for ttt/index/% title.
+ * Callback for ttt/% title.
  * 
  * @return
  *  Name of taxonomy term in arg(2).
@@ -16,7 +16,7 @@ function ttt_index_title($tid) {
 }
 
 /**
- * Callback for access to ttt/index/%.
+ * Callback for access to ttt/%.
  */
 function ttt_index_page($tid) {
   $tag_type = taxonomy_term_load($tid);

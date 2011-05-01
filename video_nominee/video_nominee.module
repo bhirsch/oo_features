@@ -156,10 +156,16 @@ function _video_nominee_url_info($node) {
  *  $name_info['error message']
  */
 function video_nominee_name($nomination_info, $original_tweet) {
-  // Get the first sentence of the tweet.
-  $end = (strpos($original_tweet, '.')) ? 
-          strpos($original_tweet, '.') : strlen($original_tweet);
-  $string = substr($original_tweet, 0, $end);
+  // Take the URL out of the tweet, otherwise periods make it difficult
+  // to examine it.
+  $replace_url = ' ';
+  $tweet = preg_replace("
+    #((http|https|ftp)://(\S*?\.\S*?))(\s|\;|\)|\]|\[|\{|\}|,|\"|'|:|\<|$|\.\s)#ie",
+      $replace_url, $original_tweet);
+  // Now get the beginning and end of the first sentence.
+  $end = (strpos($tweet, '.')) ? 
+          strpos($tweet, '.') : strlen($tweet);
+  $string = substr($tweet, 0, $end);
   // Get Twitter tags from first sentence. There should only be one tag, the video name.
   $tags = twitter_tweet_get_tags($string);
   $count = 0; // Count the number of hashtags returned. There should only be one.
@@ -174,12 +180,18 @@ function video_nominee_name($nomination_info, $original_tweet) {
     // There should only be one hashtag in the first sentence.
     $name_info['valid'] = FALSE;
     $name_info['error code'] = '001';
-    $name_info['error message'] = t('Invalid nomination. Nominations should only have one hashtag in the first sentence. Error occured here: !tweet', array('!tweet' => $original_tweet));
+    $name_info['error message'] = t('Invalid nomination. Nominations should '
+                                  . 'only have one hashtag in the first '
+                                  . 'sentence. Error occured here: !tweet', 
+                                  array('!tweet' => $original_tweet));
   }
   else if ($count == 0) {
     $name_info['valid'] = FALSE;
     $name_info['error code'] = '002';
-    $name_info['error message'] = t('Invalid nomination. Nominations should a hashtag in the first sentence for the name of the video being nominated. Error occured here: !tweet', array('!tweet' => $original_tweet));
+    $name_info['error message'] = t('Invalid nomination. Nominations should '
+                                  . 'have a hashtag in the first sentence for '
+                                  . 'the name of the video being nominated. ' 
+                                  . 'Error occured here: !tweet', array('!tweet' => $original_tweet));
   } else {
     $name_info['valid'] = TRUE; 
     if ($name_info['name tag'] = video_nominee_name_tag($name_info['video name'])) {
@@ -238,10 +250,9 @@ function video_nominee_categories($original_tweet) {
  * @return $tags
  *  @see twitter_tweet_get_tags().
  */
-function _video_nominee_tags_types($nomination_info, $tags) {
+function _video_nominee_tag_types($nomination_info, $tags) {
   $video_name = $nomination_info['video name'];
-  $categories = $nomination_info['vide categories']; 
-
+  $categories = $nomination_info['video categories']; 
 
   // If there is a $video_name, 'video name' type should be assigned to a taxonomy term. 
   if ($video_name) {
@@ -253,6 +264,11 @@ function _video_nominee_tags_types($nomination_info, $tags) {
     $tags[$category][] = 'video category';
   }
   
+  // Get rid of any duplicates.
+  foreach ($tags as $delta => $tag) {
+    $tags[$delta] = array_unique($tag);  
+  }
+
   return $tags;
 }
 
@@ -288,10 +304,10 @@ function _video_nominee_nomination_info($original_tweet, $node) {
   // Nominations must:
   // - include the word "nominate" or "nomination"
   // - include the mention "@onlineoscars"
-  $tweet = strtolower($original_tweet);
+  $tweet = ' ' . strtolower($original_tweet);
   $includes_nominate = (strpos($tweet, 'nominate')) ? TRUE : strpos($tweet, 'nomination'); 
   $includes_onlineoscars = (strpos($tweet, '@onlineoscars')) ? TRUE : FALSE;
-  if ($includes_nominate && $includes_onlineoscarsid) {
+  if ($includes_nominate && $includes_onlineoscars) {
     $is_nomination = TRUE;
   } 
   else {
@@ -300,12 +316,6 @@ function _video_nominee_nomination_info($original_tweet, $node) {
     $nomination_info['error code'] = '100';
     return $nomination_info;
   }
-
-  // TODO Use or delete...
-  // $video_name_info = _video_nominee_validate_video_name($tweet);
-  // $nomination_info['valid'] = TRUE;
-  // $nomination_info['video name'] = $video_name_info['name'];
-  // $nomination_info['new video'] = $video_name_info['new video'];
 
   // Validate nomination by making sure it has the minimum required parts.
   if ($is_nomination) {

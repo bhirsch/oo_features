@@ -1,3 +1,7 @@
+TODO: 
+This isn't a feature module anymore. It should really live in custom modules directory.
+
+
 Twitter video nominations should follow this pattern: 
 
 nominate: #video_name @onlineoscars, http://bit.ly/uRl. categories: #one #two #three.

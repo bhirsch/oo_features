@@ -46,7 +46,7 @@ function tweet_media_field_default_fields() {
       'description' => '',
       'display' => array(
         'default' => array(
-          'label' => 'above',
+          'label' => 'hidden',
           'module' => 'video_filter_field',
           'settings' => array(),
           'type' => 'video_filter_field_default',
@@ -56,7 +56,7 @@ function tweet_media_field_default_fields() {
           'label' => 'above',
           'settings' => array(),
           'type' => 'hidden',
-          'weight' => 0,
+          'weight' => '0',
         ),
       ),
       'entity_type' => 'node',

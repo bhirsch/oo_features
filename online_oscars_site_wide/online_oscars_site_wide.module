@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Online Oscars Site-wide feature.
+ */
+
+include_once('online_oscars_site_wide.features.inc');

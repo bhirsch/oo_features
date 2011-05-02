@@ -39,8 +39,8 @@ x Identify video URLs in Tweets and populate video field
 Custom Modules: 
 
 Video Nominee module 
-/ [Get rid of video_nominee content type]
-- handle existing video name
+\ [Get rid of video_nominee content type]
+- handl existing video name
 - handle video name
 - handle video categories
 - hook into tweet_media and prevent duplicate URLs

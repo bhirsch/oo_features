@@ -164,6 +164,10 @@ function video_nominee_name($nomination_info, $original_tweet) {
     #((http|https|ftp)://(\S*?\.\S*?))(\s|\;|\)|\]|\[|\{|\}|,|\"|'|:|\<|$|\.\s)#ie",
       $replace_url, $original_tweet);
   // */
+  // TODO Re-do this like this: 
+  //  1. explode on ' '.
+  //  2. find elements beginning with http://. Rebuild tweet with out http
+  //  3. then examine first sentence.
   // Now get the beginning and end of the first sentence.
   $end = (strpos($original_tweet, '.')) ? 
           strpos($original_tweet, '.') : strlen($original_tweet);

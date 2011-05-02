@@ -45,14 +45,14 @@ function twitter_tweet_field_default_fields() {
       'description' => '',
       'display' => array(
         'default' => array(
-          'label' => 'above',
+          'label' => 'hidden',
           'module' => 'twitter_tweet',
           'settings' => array(),
           'type' => 'twitter_tweet',
           'weight' => '3',
         ),
         'teaser' => array(
-          'label' => 'above',
+          'label' => 'hidden',
           'module' => 'twitter_tweet',
           'settings' => array(),
           'type' => 'twitter_tweet',
@@ -119,7 +119,7 @@ function twitter_tweet_field_default_fields() {
       'description' => '',
       'display' => array(
         'default' => array(
-          'label' => 'above',
+          'label' => 'hidden',
           'module' => 'taxonomy',
           'settings' => array(),
           'type' => 'taxonomy_term_reference_link',

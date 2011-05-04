@@ -23,11 +23,16 @@ function ttt_menu() {
   $items = array();
 
   // Get term IDs for each term in Twitter Tag Types vocabulary.
+  /*
   $results = db_select('taxonomy_vocabulary', 'tv')
     ->fields('tv', array('vid'))
     ->condition('machine_name', 'twitter_tag_types')
     ->execute()
     ->fetchAssoc();
+  // */
+  $results = db_query("SELECT vid FROM {taxonomy_vocabulary} tv "
+             . "WHERE machine_name = :s ", array(':s' => 'twitter_tag_types'));
+  $results = $results->fetchAssoc();
   $vid = $results['vid'];
   $terms = taxonomy_get_tree($vid);
   $tids = array();

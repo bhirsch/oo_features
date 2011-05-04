@@ -28,14 +28,6 @@ function ttt_index_page($tid) {
                     array(':tid' => $tid))
                       ->fetchAllAssoc('name');
   ksort($results);
-  /*
-  $results = db_select('taxonomy_term_data', 'ttd')
-    ->fields('ttd')
-    ->join('field_data_field_twitter_tag_types', 'fdfttt', 'ttd.tid = fdfttt.entity_id')
-    ->condition('fdfttt.field_twitter_tag_types_tid', $tid)
-    ->execute()
-    ->fetchAssoc();
-    // */
 
   $link = array();
   $items = array();
@@ -69,8 +61,6 @@ function ttt_index_page($tid) {
 function theme_ttt_index_term($variables) {
   $output = '';
 
-  // @todo I don't think it's right to call render from a theme function. But 
-  //   I can't seem to get it to render the children before here... ?
   $link = render($variables);
   $output = '<div >' . $link . '</div>'; 
 

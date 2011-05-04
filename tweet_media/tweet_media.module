@@ -35,11 +35,13 @@ function tweet_media_node_presave($node) {
         // Validate URL.
         $url_info = tweet_media_url_info($part);
         // Give other modules a chance to validate URL.
-        foreach (module_implements('tweet_media_validate_url') as $module) {
-          $url_info = module_invoke($module, 'tweet_media_validate_url', $url_info);
-        }  
         if ($url_info['valid']) {
-          $urls[] = $url_info;
+          foreach (module_implements('tweet_media_validate_url') as $module) {
+            $url_info = module_invoke($module, 'tweet_media_validate_url', $url_info);
+          }  
+          if ($url_info['valid']) {
+            $urls[] = $url_info;
+          }
         }
         else {
           // Report errors.
@@ -74,7 +76,7 @@ function tweet_media_node_presave($node) {
  * from tweet on save.
  */
 function tweet_media_form_tweet_node_form_alter(&$form, &$form_state) {
-  $form['field_media_url']['#access'] = FALSE; 
+//  $form['field_media_url']['#access'] = FALSE; 
 }
 
 /**

@@ -42,10 +42,6 @@ function video_nominee_ttt_tag_types($node, $tags) {
   return $tags;  
 }
 
-//------------------------------------------------------//
-// Internal functions                                   //
-//------------------------------------------------------//
-
 /**
  * Implments hook_tweet_media_validate_url().
  * 
@@ -61,6 +57,9 @@ function video_nominee_ttt_tag_types($node, $tags) {
  * @return $url_info
  *  Modified $url_info array.
  */
+/*
+// @todo Revisit this. URLs probably shouldn't be invalidated. But we need something
+//   to show the relathionship so duplicate nominations don't end up splitting votes.
 function video_nominee_tweet_media_validate_url($url_info) {
   $url = $url_info['destination_url'];
   // Check to see if this URL has been saved with any other tweets yet.
@@ -76,6 +75,11 @@ function video_nominee_tweet_media_validate_url($url_info) {
   
   return $url_info;
 }
+// */
+
+//------------------------------------------------------//
+// Internal functions                                   //
+//------------------------------------------------------//
 
 /**
  * Test URL for new video name.

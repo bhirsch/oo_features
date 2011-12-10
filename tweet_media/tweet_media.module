@@ -128,7 +128,7 @@ function tweet_media_url_info($url) {
   }
 
   // Get $url_info['destination_url'].
-  $destination = destination_url($url);
+  $destination = destination($url);
   // Check HTTP code, it should be 2xx
   // (see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html).
   $http_code = $destination['http_code'];
